@@ -1,1212 +1,599 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="家計">
-  <title>家計</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <style>
-    :root {
-      --bg: #0A0A0B;
-      --surface: #111113;
-      --surface2: #18181B;
-      --surface3: #232326;
-      --border: #27272A;
-      --border2: #3F3F46;
-      --text: #F4F4F5;
-      --text2: #A1A1AA;
-      --muted: #52525B;
-      --green: #22C55E;
-      --red: #F87171;
-      --blue: #60A5FA;
-      --yellow: #FBBF24;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0A0B">
+<title>家計</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0A0A0B;--card:#111113;--card2:#18181B;--card3:#1F1F23;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --text:#F4F4F5;--muted:#71717A;--dim:#3F3F46;
+  --green:#22C55E;--red:#F87171;--blue:#60A5FA;
+  --rakuten:#FF4040;--smbc:#4D9FFF;--yucho:#4ADE80;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overscroll-behavior:none}
+body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-bottom)+20px)}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.hd{padding:52px 20px 0;display:flex;align-items:flex-start;justify-content:space-between}
+.hd-title{font-size:26px;font-weight:300;letter-spacing:-.5px}
+.hd-period{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px;min-height:15px}
+.hd-plus{width:36px;height:36px;border-radius:10px;background:var(--card2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--muted);transition:all .15s;flex-shrink:0;margin-top:2px}
+.hd-plus:hover{color:var(--text)}
 
-    html { -webkit-text-size-adjust: 100%; }
+.mwrap{overflow-x:auto;padding:18px 20px 0;scrollbar-width:none}
+.mwrap::-webkit-scrollbar{display:none}
+.mrow{display:flex;gap:6px;width:max-content}
+.mp{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s;white-space:nowrap;font-family:var(--font)}
+.mp.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 
-    body {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      overflow-x: hidden;
-    }
+.hero{margin:16px 20px 0;background:var(--card);border-radius:20px;padding:22px;border:1px solid var(--border);position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(96,165,250,.08) 0%,transparent 65%);pointer-events:none}
+.hero-lbl{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase}
+.hero-amt{font-size:40px;font-weight:300;letter-spacing:-2px;margin:6px 0 18px;font-family:var(--mono);line-height:1}
+.hero-amt.pos{color:var(--green)}
+.hero-amt.neg{color:var(--red)}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hero-box{background:var(--card2);border-radius:12px;padding:12px 14px}
+.hero-box-lbl{font-size:10px;color:var(--muted);margin-bottom:5px}
+.hero-box-val{font-size:18px;font-weight:500;font-family:var(--mono);letter-spacing:-.5px}
+.hero-box-val.inc{color:var(--green)}
+.hero-box-val.exp{color:var(--red)}
 
-    .app {
-      max-width: 480px;
-      margin: 0 auto;
-      padding-bottom: calc(32px + env(safe-area-inset-bottom));
-    }
+.sec{padding:16px 20px 0}
+.sec-lbl{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.acc-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.acc-row::-webkit-scrollbar{display:none}
+.acc{flex-shrink:0;width:118px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;cursor:pointer;transition:all .15s}
+.acc.on{border-color:rgba(255,255,255,.28);background:var(--card2)}
+.acc-dot{width:7px;height:7px;border-radius:50%;margin-bottom:10px}
+.acc-name{font-size:11px;font-weight:500;margin-bottom:6px;line-height:1.3;color:var(--muted)}
+.acc-amt{font-size:14px;font-weight:600;font-family:var(--mono);letter-spacing:-.5px}
+.acc-amt.neg{color:var(--red)}
+.acc-amt.pos{color:var(--green)}
+.acc-amt.neu{color:var(--text)}
 
-    /* ── Header ── */
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(10,10,11,0.9);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      height: 56px;
-      gap: 10px;
-    }
+.chart-card{margin:16px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.chart-title{font-size:13px;font-weight:500;color:var(--text)}
+.chart-tabs{display:flex;gap:2px;background:var(--card2);border-radius:8px;padding:2px}
+.ctab{font-size:11px;padding:4px 10px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:var(--font);transition:all .15s}
+.ctab.on{background:var(--card3);color:var(--text)}
+.chart-sub{font-size:10px;color:var(--dim);font-family:var(--mono);margin-bottom:16px;min-height:14px;letter-spacing:.3px}
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-    }
+.bar-area{position:relative;height:130px}
+.bar-yaxis{position:absolute;left:0;top:0;bottom:22px;width:38px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.bar-ylabel{font-size:9px;color:var(--dim);font-family:var(--mono);text-align:right;line-height:1}
+.bar-inner{position:absolute;left:44px;right:0;top:0;bottom:22px;display:flex;align-items:flex-end;gap:5px}
+.bar-gridlines{position:absolute;left:44px;right:0;top:0;bottom:22px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.bar-gl{border-top:1px solid rgba(255,255,255,.04);width:100%}
+.bg{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.bw{display:flex;align-items:flex-end;gap:2px;width:100%;justify-content:center}
+.b{border-radius:3px 3px 0 0;min-height:2px;transition:height .5s cubic-bezier(.4,0,.2,1);width:11px}
+.b.inc{background:var(--green);opacity:.8}
+.b.exp{background:var(--red);opacity:.8}
+.bar-xlabels{position:absolute;left:44px;right:0;bottom:0;height:20px;display:flex;gap:5px}
+.bar-xl{flex:1;font-size:9px;color:var(--dim);font-family:var(--mono);text-align:center;line-height:20px}
+.bar-leg{display:flex;gap:12px;margin-top:12px;justify-content:flex-end}
+.bar-leg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.bar-leg-d{width:10px;height:3px;border-radius:2px}
 
-    .header-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.6px;
-    }
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut-svg-wrap{position:relative;flex-shrink:0;width:144px;height:144px}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;width:76px}
+.donut-center-val{font-size:15px;font-weight:500;font-family:var(--mono);color:var(--text);letter-spacing:-.5px;white-space:nowrap}
+.donut-center-lbl{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0}
+.dl-row{display:flex;align-items:center;gap:7px}
+.dl-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+.dl-name{font-size:11px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-right{text-align:right;flex-shrink:0}
+.dl-pct{font-size:12px;font-family:var(--mono);color:var(--text);font-weight:500}
+.dl-amt{font-size:9px;font-family:var(--mono);color:var(--dim);display:block}
 
-    .demo-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      font-weight: 500;
-      color: #FBBF24;
-      background: rgba(251,191,36,0.12);
-      border: 1px solid rgba(251,191,36,0.3);
-      border-radius: 5px;
-      padding: 2px 6px;
-      letter-spacing: 0.5px;
-    }
+.tabs{display:flex;gap:4px;margin:16px 20px 0;background:var(--card);border-radius:12px;padding:4px}
+.ttab{flex:1;padding:8px;border-radius:9px;font-size:12px;font-weight:500;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:var(--font);transition:all .15s}
+.ttab.on{background:var(--card2);color:var(--text)}
+.txns{padding:12px 20px 0;display:flex;flex-direction:column;gap:1px}
+.dh{font-size:10px;font-family:var(--mono);color:var(--dim);padding:10px 0 5px;letter-spacing:.5px}
+.txn{background:var(--card);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+.txn-ic{width:34px;height:34px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.txn-bd{flex:1;min-width:0}
+.txn-nm{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.1px}
+.txn-meta{display:flex;gap:5px;margin-top:3px;align-items:center;flex-wrap:wrap}
+.tag{font-size:9px;padding:2px 6px;border-radius:4px;background:var(--card2);color:var(--muted);font-family:var(--mono)}
+.tag.rakuten{background:rgba(255,64,64,.12);color:var(--rakuten)}
+.tag.smbc{background:rgba(77,159,255,.12);color:var(--smbc)}
+.tag.yucho{background:rgba(74,222,128,.12);color:var(--yucho)}
+.txn-amt{font-size:14px;font-weight:600;font-family:var(--mono);flex-shrink:0;letter-spacing:-.5px}
+.txn-amt.neg{color:var(--red)}
+.txn-amt.pos{color:var(--green)}
 
-    .header-period {
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .btn-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      background: var(--surface3);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 18px;
-      line-height: 1;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
-      flex-shrink: 0;
-    }
-    .btn-icon:active { background: var(--border2); }
-
-    /* ── Scrollable pills ── */
-    .scroll-row {
-      display: flex;
-      gap: 8px;
-      padding: 12px 20px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-    .scroll-row::-webkit-scrollbar { display: none; }
-
-    .pill {
-      flex-shrink: 0;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text2);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .pill.active {
-      background: var(--text);
-      color: var(--bg);
-      border-color: var(--text);
-    }
-
-    .account-card {
-      flex-shrink: 0;
-      padding: 8px 16px;
-      border-radius: 12px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text2);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .account-card.active {
-      border-color: var(--blue);
-      background: rgba(96,165,250,0.08);
-      color: var(--blue);
-    }
-
-    /* ── Cards ── */
-    .card {
-      margin: 0 16px 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 20px;
-    }
-
-    /* ── Hero ── */
-    .hero-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 6px;
-    }
-
-    .hero-balance {
-      font-family: 'DM Mono', monospace;
-      font-size: 40px;
-      font-weight: 500;
-      letter-spacing: -2px;
-      line-height: 1;
-      margin-bottom: 20px;
-    }
-    .hero-balance.pos { color: var(--green); }
-    .hero-balance.neg { color: var(--red); }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .hero-cell {
-      background: var(--surface2);
-      border-radius: 14px;
-      padding: 14px;
-    }
-
-    .hero-cell-label {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .hero-cell-amount {
-      font-family: 'DM Mono', monospace;
-      font-size: 19px;
-      font-weight: 500;
-      letter-spacing: -0.5px;
-    }
-    .hero-cell-amount.income { color: var(--green); }
-    .hero-cell-amount.expense { color: var(--red); }
-
-    /* ── Chart ── */
-    .tab-bar {
-      display: flex;
-      background: var(--surface2);
-      border-radius: 12px;
-      padding: 3px;
-      margin-bottom: 16px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      text-align: center;
-      padding: 8px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--muted);
-      transition: all 0.2s;
-      user-select: none;
-    }
-    .tab-btn.active {
-      background: var(--surface);
-      color: var(--text);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-    }
-
-    .chart-scroll { overflow-x: auto; scrollbar-width: none; }
-    .chart-scroll::-webkit-scrollbar { display: none; }
-
-    .chart-legend {
-      display: flex;
-      gap: 14px;
-      justify-content: flex-end;
-      margin-bottom: 10px;
-    }
-    .legend-dot-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: var(--text2);
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 2px;
-    }
-
-    /* Donut */
-    .donut-wrap {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .donut-svg-container {
-      position: relative;
-      flex-shrink: 0;
-      width: 150px;
-      height: 150px;
-    }
-
-    .donut-center-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .donut-center-label {
-      font-size: 9px;
-      color: var(--muted);
-      letter-spacing: 0.3px;
-    }
-    .donut-center-amount {
-      font-family: 'DM Mono', monospace;
-      font-size: 15px;
-      font-weight: 500;
-      margin-top: 2px;
-    }
-
-    .donut-legend {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      max-height: 180px;
-      overflow-y: auto;
-      scrollbar-width: none;
-    }
-    .donut-legend::-webkit-scrollbar { display: none; }
-
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .legend-dot-circle {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .legend-name {
-      font-size: 12px;
-      flex: 1;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .legend-pct {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .legend-amt {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text2);
-      flex-shrink: 0;
-    }
-
-    /* ── Transactions ── */
-    .txn-filter-row {
-      display: flex;
-      gap: 6px;
-      padding: 4px 16px 12px;
-    }
-
-    .txn-filter-btn {
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--muted);
-      background: transparent;
-      border: 1px solid transparent;
-      transition: all 0.15s;
-    }
-    .txn-filter-btn.active {
-      color: var(--text);
-      border-color: var(--border);
-      background: var(--surface2);
-    }
-
-    .txn-list { padding: 0 16px; }
-
-    .date-header {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--muted);
-      padding: 10px 0 6px;
-      border-top: 1px solid var(--border);
-      margin-top: 2px;
-    }
-    .date-header:first-child { border-top: none; margin-top: 0; }
-
-    .txn-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--surface2);
-    }
-    .txn-row:last-child { border-bottom: none; }
-
-    .txn-icon-wrap {
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-      flex-shrink: 0;
-    }
-
-    .txn-body { flex: 1; min-width: 0; }
-
-    .txn-name {
-      font-size: 14px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .txn-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 3px;
-    }
-
-    .tag {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 5px;
-      background: var(--surface2);
-      color: var(--text2);
-    }
-
-    .txn-amt {
-      font-family: 'DM Mono', monospace;
-      font-size: 14px;
-      font-weight: 500;
-      flex-shrink: 0;
-      letter-spacing: -0.3px;
-    }
-    .txn-amt.income { color: var(--green); }
-    .txn-amt.expense { color: var(--text); }
-
-    /* ── Upload ── */
-    .upload-area {
-      margin: 8px 16px 0;
-      border: 1.5px dashed var(--border);
-      border-radius: 20px;
-      padding: 32px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .upload-area.drag-over {
-      border-color: var(--blue);
-      background: rgba(96,165,250,0.05);
-    }
-    .upload-icon { font-size: 28px; margin-bottom: 10px; }
-    .upload-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
-    .upload-sub { font-size: 12px; color: var(--muted); line-height: 1.6; }
-
-    #file-input { display: none; }
-
-    /* ── Toast ── */
-    .toast-wrap {
-      position: fixed;
-      bottom: calc(24px + env(safe-area-inset-bottom));
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      pointer-events: none;
-    }
-
-    .toast {
-      background: var(--surface3);
-      border: 1px solid var(--border2);
-      border-radius: 12px;
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-      animation: toast-in 0.25s ease, toast-out 0.25s ease 2.75s forwards;
-    }
-
-    @keyframes toast-in {
-      from { opacity: 0; transform: translateY(10px) scale(0.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes toast-out {
-      from { opacity: 1; transform: translateY(0) scale(1); }
-      to   { opacity: 0; transform: translateY(8px) scale(0.97); }
-    }
-
-    .empty-state {
-      text-align: center;
-      color: var(--muted);
-      padding: 40px 0;
-      font-size: 13px;
-    }
-  </style>
+.upload{margin:20px 20px 0;background:var(--card);border:1.5px dashed var(--dim);border-radius:20px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.upload:hover{border-color:var(--muted)}
+.upload.drag{border-color:var(--blue);background:rgba(96,165,250,.05)}
+.upload-ic{font-size:26px;margin-bottom:8px}
+.upload-t{font-size:14px;font-weight:500;margin-bottom:4px}
+.upload-s{font-size:11px;color:var(--muted);line-height:1.5}
+.ubadges{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.ub{font-size:10px;padding:3px 10px;border-radius:5px;font-weight:500;font-family:var(--mono)}
+.demo-badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(251,191,36,.12);color:#FBBF24;font-family:var(--mono);margin-left:6px;vertical-align:middle}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--text);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;white-space:nowrap}
+.toast.show{opacity:1}
+.sp{height:40px}
+</style>
 </head>
 <body>
-<div class="app">
 
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <span class="header-title">家計</span>
-      <span class="demo-badge" id="demo-badge">DEMO</span>
-    </div>
-    <span class="header-period" id="header-period"></span>
-    <button class="btn-icon" id="btn-upload">＋</button>
-  </header>
-
-  <!-- Month pills -->
-  <div class="scroll-row" id="month-pills"></div>
-
-  <!-- Hero card -->
-  <div class="card">
-    <div class="hero-label">差引残高</div>
-    <div class="hero-balance" id="hero-balance">¥0</div>
-    <div class="hero-grid">
-      <div class="hero-cell">
-        <div class="hero-cell-label">↑ 収入</div>
-        <div class="hero-cell-amount income" id="hero-income">¥0</div>
-      </div>
-      <div class="hero-cell">
-        <div class="hero-cell-label">↓ 支出</div>
-        <div class="hero-cell-amount expense" id="hero-expense">¥0</div>
-      </div>
-    </div>
+<div class="hd">
+  <div>
+    <div class="hd-title">家計 <span class="demo-badge" id="demo-badge">DEMO</span></div>
+    <div class="hd-period" id="period-label">—</div>
   </div>
-
-  <!-- Account filter -->
-  <div class="scroll-row" id="account-pills"></div>
-
-  <!-- Chart card -->
-  <div class="card" id="chart-card">
-    <div class="tab-bar">
-      <div class="tab-btn active" id="tab-trend">推移</div>
-      <div class="tab-btn" id="tab-breakdown">内訳</div>
-    </div>
-    <div id="chart-body"></div>
-  </div>
-
-  <!-- Transaction filter tabs -->
-  <div class="txn-filter-row">
-    <button class="txn-filter-btn active" data-filter="all">すべて</button>
-    <button class="txn-filter-btn" data-filter="income">収入</button>
-    <button class="txn-filter-btn" data-filter="expense">支出</button>
-  </div>
-
-  <!-- Transaction list -->
-  <div class="txn-list" id="txn-list"></div>
-
-  <!-- Upload -->
-  <div class="upload-area" id="upload-area">
-    <div class="upload-icon">📂</div>
-    <div class="upload-title">明細をアップロード</div>
-    <div class="upload-sub">PDF / CSV をドラッグ＆ドロップ<br>またはタップして選択</div>
-  </div>
-
-  <input type="file" id="file-input" multiple accept=".pdf,.csv">
+  <div class="hd-plus" onclick="document.getElementById('fu').click()" title="PDFまたはCSVをアップロード">＋</div>
 </div>
 
-<div class="toast-wrap" id="toast-wrap"></div>
+<div class="mwrap"><div class="mrow" id="mrow"></div></div>
+
+<div class="hero">
+  <div class="hero-lbl">差引残高</div>
+  <div class="hero-amt" id="net">¥0</div>
+  <div class="hero-grid">
+    <div class="hero-box"><div class="hero-box-lbl">収入</div><div class="hero-box-val inc" id="inc">¥0</div></div>
+    <div class="hero-box"><div class="hero-box-lbl">支出</div><div class="hero-box-val exp" id="exp">¥0</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-lbl">口座</div>
+  <div class="acc-row">
+    <div class="acc on" onclick="setAcc('all',this)"><div class="acc-dot" style="background:var(--muted)"></div><div class="acc-name">すべて</div><div class="acc-amt neu" id="a-all">¥0</div></div>
+    <div class="acc" onclick="setAcc('rakuten',this)"><div class="acc-dot" style="background:var(--rakuten)"></div><div class="acc-name">楽天カード</div><div class="acc-amt neg" id="a-rakuten">¥0</div></div>
+    <div class="acc" onclick="setAcc('smbc',this)"><div class="acc-dot" style="background:var(--smbc)"></div><div class="acc-name">三井住友</div><div class="acc-amt neg" id="a-smbc">¥0</div></div>
+    <div class="acc" onclick="setAcc('yucho',this)"><div class="acc-dot" style="background:var(--yucho)"></div><div class="acc-name">ゆうちょ</div><div class="acc-amt pos" id="a-yucho">¥0</div></div>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-hd">
+    <div class="chart-title" id="chart-title">収支推移</div>
+    <div class="chart-tabs">
+      <button class="ctab on" onclick="setChart('bar',this)">推移</button>
+      <button class="ctab" onclick="setChart('donut',this)">内訳</button>
+    </div>
+  </div>
+  <div class="chart-sub" id="chart-sub"></div>
+
+  <div id="cv-bar">
+    <div class="bar-area">
+      <div class="bar-yaxis" id="bar-yaxis"></div>
+      <div class="bar-gridlines"><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div></div>
+      <div class="bar-inner" id="bar-inner"></div>
+      <div class="bar-xlabels" id="bar-xlabels"></div>
+    </div>
+    <div class="bar-leg">
+      <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--green)"></div>収入</div>
+      <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--red)"></div>支出</div>
+    </div>
+  </div>
+
+  <div id="cv-donut" style="display:none">
+    <div class="donut-wrap">
+      <div class="donut-svg-wrap">
+        <svg id="dsvg" width="144" height="144" viewBox="0 0 144 144"></svg>
+        <div class="donut-center"><div class="donut-center-val" id="dc-val">¥0</div><div class="donut-center-lbl">支出合計</div></div>
+      </div>
+      <div class="donut-legend" id="dlegend"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="ttab on" onclick="setTab('all',this)">すべて</button>
+  <button class="ttab" onclick="setTab('income',this)">収入</button>
+  <button class="ttab" onclick="setTab('expense',this)">支出</button>
+</div>
+<div class="txns" id="txns"></div>
+
+<div class="upload" id="dropzone"
+  onclick="document.getElementById('fu').click()"
+  ondragover="event.preventDefault();this.classList.add('drag')"
+  ondragleave="this.classList.remove('drag')"
+  ondrop="onDrop(event)">
+  <input type="file" id="fu" accept=".pdf,.csv" multiple style="display:none" onchange="onFile(event)">
+  <div class="upload-ic">📂</div>
+  <div class="upload-t">実データをアップロード</div>
+  <div class="upload-s">楽天・三井住友・ゆうちょの PDF または CSV<br>アップロードするとデモデータが置き換わります</div>
+  <div class="ubadges">
+    <span class="ub" style="background:rgba(255,64,64,.15);color:var(--rakuten)">楽天 PDF/CSV</span>
+    <span class="ub" style="background:rgba(77,159,255,.15);color:var(--smbc)">SMBC CSV</span>
+    <span class="ub" style="background:rgba(74,222,128,.15);color:var(--yucho)">ゆうちょ CSV</span>
+  </div>
+</div>
+<div class="sp"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-// ─────────────────────────────────────────
-//  CATEGORIES
-// ─────────────────────────────────────────
-const CATS = [
-  { key:'convenience', name:'コンビニ',   icon:'🏪', color:'#94A3B8',
-    pat:['セイコーマート','ローソン','セブン-イレブン','セブンイレブン','ファミリーマート','LAWSON','7-ELEVEN','SEICO MART'] },
-  { key:'transport',   name:'交通',       icon:'✈️', color:'#FBBF24',
-    pat:['ETC','日本航空','JAL','ANA','新幹線','空港','駐車場','SUICA','PASMO','交通費','航空'] },
-  { key:'gas',         name:'ガソリン',   icon:'⛽', color:'#F97316',
-    pat:['ホクレン','ENEOS','出光','伊藤忠エネクス','キグナス','SS'] },
-  { key:'utility',     name:'光熱費',     icon:'⚡', color:'#60A5FA',
-    pat:['電力','電気代','トウキヨウデンリヨク','デンキリヨ','東ガス','水道局','TEPCO'] },
-  { key:'mobile',      name:'通信費',     icon:'📱', color:'#A78BFA',
-    pat:['楽天モバイル','ドコモ','UQ','ソフトバンク','DOCOMO','NTT'] },
-  { key:'subscription',name:'サブスク',   icon:'📺', color:'#EC4899',
-    pat:['SPOTIFY','NETFLIX','APPLE COM BILL','APPLE.COM','GOOGLE WORKSPACE','CLAUDE.AI','CLAUDE'] },
-  { key:'grocery',     name:'食料品',     icon:'🛒', color:'#22C55E',
-    pat:['ラツキ-','食品館','アオバ','スーパー','エーマート','ナガサワ','マルイ','イオン','マックスバリュ'] },
-  { key:'restaurant',  name:'外食',       icon:'🍽', color:'#4ADE80',
-    pat:['SQ*','イツキ','ヤクモ','居酒屋','アカシア','モリノジョウゾウ'] },
-  { key:'shopping',    name:'ショッピング',icon:'🛍', color:'#F87171',
-    pat:['AMAZON.CO.JP','AMAZON','楽天市場','ダイソー','ディーシーエム','DCM'] },
-  { key:'drug',        name:'ドラッグ',   icon:'💊', color:'#34D399',
-    pat:['ドラッグセイムス','マツモトキヨシ','ツルハ','マツキヨ','セイムス'] },
-  { key:'investment',  name:'投資',       icon:'📈', color:'#818CF8',
-    pat:['楽天証券','証券','投信','積立'] },
-  { key:'insurance',   name:'保険',       icon:'🛡', color:'#6B7280',
-    pat:['保険','生命','楽天生命'] },
-  { key:'delivery',    name:'配送',       icon:'📦', color:'#C084FC',
-    pat:['クロネコ','ヤマト運輸','佐川','ヤマト'] },
-  { key:'salary',      name:'給与',       icon:'💰', color:'#22C55E',
-    pat:['給与','賞与'] },
-  { key:'other',       name:'その他',     icon:'📋', color:'#52525B', pat:[] },
+if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── デモデータ（楽天の実明細フォーマットに合わせて作成）──
+const DEMO_DATA = [
+  // 2026年3月 — 楽天カード
+  {date:'2026-03-01',name:'GOOGLE*WORKSPACE',amount:-140,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-03-01',name:'SQ*イツキユウソバ',amount:-3000,type:'expense',cat:'外食',icon:'🍽',col:'#4ADE80',src:'rakuten'},
+  {date:'2026-03-01',name:'ナガサワショウテン',amount:-4200,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-03-04',name:'AMAZON.CO.JP',amount:-562,type:'expense',cat:'ショッピング',icon:'🛍',col:'#F87171',src:'rakuten'},
+  {date:'2026-03-04',name:'トウキヨウデンリヨクデンキリヨ',amount:-22812,type:'expense',cat:'光熱費',icon:'⚡',col:'#60A5FA',src:'rakuten'},
+  {date:'2026-03-05',name:'楽天生命保険',amount:-13732,type:'expense',cat:'保険',icon:'🛡',col:'#6B7280',src:'rakuten'},
+  {date:'2026-03-07',name:'ヤクモオンセンオホコソウ',amount:-32740,type:'expense',cat:'外食',icon:'🍽',col:'#4ADE80',src:'rakuten'},
+  {date:'2026-03-07',name:'ETCカード売上',amount:-3230,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'rakuten'},
+  {date:'2026-03-07',name:'セブン-イレブン',amount:-220,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  {date:'2026-03-08',name:'ラツキ-チトセニシキマチテン',amount:-5410,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-03-08',name:'シンチトセクウコウBチュウシャジ',amount:-1000,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'rakuten'},
+  {date:'2026-03-08',name:'ホクレンSS ランコシセルフ',amount:-8796,type:'expense',cat:'ガソリン',icon:'⛽',col:'#F97316',src:'rakuten'},
+  {date:'2026-03-11',name:'楽天モバイル通信料',amount:-3281,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'rakuten'},
+  {date:'2026-03-12',name:'APPLE COM BILL',amount:-3000,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-03-12',name:'ショクヒンカンアオバ アヤセテン',amount:-5164,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-03-12',name:'キグナスセキユ',amount:-3649,type:'expense',cat:'ガソリン',icon:'⛽',col:'#F97316',src:'rakuten'},
+  {date:'2026-03-14',name:'ラツキ-イワナイテン',amount:-6916,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-03-16',name:'楽天証券投信積立',amount:-33333,type:'expense',cat:'投資',icon:'📈',col:'#818CF8',src:'rakuten'},
+  {date:'2026-03-18',name:'日本航空国内線チケットレス',amount:-42674,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'rakuten'},
+  {date:'2026-03-21',name:'CLAUDE.AI SUBSCRIPTI',amount:-3304,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-03-21',name:'ラツキ-イワナイテン',amount:-4300,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-03-21',name:'クロネコヤマト ヤマトウンユ',amount:-1886,type:'expense',cat:'配送',icon:'📦',col:'#C084FC',src:'rakuten'},
+  {date:'2026-03-21',name:'ダイソー',amount:-660,type:'expense',cat:'ショッピング',icon:'🛍',col:'#F87171',src:'rakuten'},
+  {date:'2026-03-21',name:'SQ*モリノジョウゾウシ',amount:-9240,type:'expense',cat:'外食',icon:'🍽',col:'#4ADE80',src:'rakuten'},
+  {date:'2026-03-25',name:'ネットキャッシング',amount:-20325,type:'expense',cat:'その他',icon:'📋',col:'#52525B',src:'rakuten'},
+  {date:'2026-03-26',name:'APPLE COM BILL',amount:-1500,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-03-28',name:'SPOTIFY利用国SE',amount:-1880,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-03-28',name:'ホクレンSS ランコシセルフ',amount:-5891,type:'expense',cat:'ガソリン',icon:'⛽',col:'#F97316',src:'rakuten'},
+  {date:'2026-03-28',name:'ディーシーエムニコット',amount:-3036,type:'expense',cat:'ショッピング',icon:'🛍',col:'#F87171',src:'rakuten'},
+  {date:'2026-03-30',name:'ドラッグセイムス アヤセミナミ',amount:-2272,type:'expense',cat:'ドラッグ',icon:'💊',col:'#34D399',src:'rakuten'},
+  {date:'2026-03-30',name:'ローソン',amount:-899,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  {date:'2026-03-30',name:'シンチトセ クウコウ ターミナル',amount:-924,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'rakuten'},
+  {date:'2026-03-31',name:'ローソン',amount:-548,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  {date:'2026-03-31',name:'ラツキ-チトセニシキマチテン',amount:-2428,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  // 2026年3月 — ゆうちょ（給与）
+  {date:'2026-03-25',name:'給与',amount:350000,type:'income',cat:'給与',icon:'💰',col:'#22C55E',src:'yucho'},
+  // 2026年3月 — 三井住友
+  {date:'2026-03-10',name:'交通費精算',amount:-4200,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'smbc'},
+  {date:'2026-03-15',name:'ドコモご利用料金',amount:-4134,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'smbc'},
+  {date:'2026-03-20',name:'UQ mobileご利用料金',amount:-1653,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'smbc'},
+  {date:'2026-03-27',name:'伊藤忠エネクス',amount:-3846,type:'expense',cat:'ガソリン',icon:'⛽',col:'#F97316',src:'smbc'},
+  // 2026年4月 — 楽天カード
+  {date:'2026-04-03',name:'ドラッグセイムス アヤセミナミ',amount:-2272,type:'expense',cat:'ドラッグ',icon:'💊',col:'#34D399',src:'rakuten'},
+  {date:'2026-04-05',name:'SPOTIFY利用国SE',amount:-1880,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-04-07',name:'ローソン',amount:-548,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  {date:'2026-04-07',name:'ラツキ-チトセニシキマチテン',amount:-2428,type:'expense',cat:'食料品',icon:'🛒',col:'#22C55E',src:'rakuten'},
+  {date:'2026-04-07',name:'アカシア',amount:-1296,type:'expense',cat:'外食',icon:'🍽',col:'#4ADE80',src:'rakuten'},
+  {date:'2026-04-07',name:'02月度再振替手数料',amount:-220,type:'expense',cat:'その他',icon:'📋',col:'#52525B',src:'rakuten'},
+  {date:'2026-04-10',name:'セイコーマート ランコシ',amount:-448,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  {date:'2026-04-12',name:'APPLE COM BILL',amount:-1500,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-04-14',name:'CLAUDE.AI SUBSCRIPTI',amount:-3304,type:'expense',cat:'サブスク',icon:'📺',col:'#EC4899',src:'rakuten'},
+  {date:'2026-04-16',name:'楽天証券投信積立',amount:-33333,type:'expense',cat:'投資',icon:'📈',col:'#818CF8',src:'rakuten'},
+  {date:'2026-04-18',name:'AMAZON.CO.JP',amount:-2800,type:'expense',cat:'ショッピング',icon:'🛍',col:'#F87171',src:'rakuten'},
+  {date:'2026-04-20',name:'トウキヨウデンリヨクデンキリヨ',amount:-18500,type:'expense',cat:'光熱費',icon:'⚡',col:'#60A5FA',src:'rakuten'},
+  {date:'2026-04-21',name:'楽天モバイル通信料',amount:-3281,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'rakuten'},
+  {date:'2026-04-22',name:'SQ*モリノジョウゾウシ',amount:-6500,type:'expense',cat:'外食',icon:'🍽',col:'#4ADE80',src:'rakuten'},
+  {date:'2026-04-24',name:'ホクレンSS ランコシセルフ',amount:-6200,type:'expense',cat:'ガソリン',icon:'⛽',col:'#F97316',src:'rakuten'},
+  {date:'2026-04-25',name:'セイコーマート ランコシチュウオ',amount:-882,type:'expense',cat:'コンビニ',icon:'🏪',col:'#94A3B8',src:'rakuten'},
+  // 2026年4月 — ゆうちょ（給与）
+  {date:'2026-04-25',name:'給与',amount:350000,type:'income',cat:'給与',icon:'💰',col:'#22C55E',src:'yucho'},
+  // 2026年4月 — 三井住友
+  {date:'2026-04-10',name:'ドコモご利用料金',amount:-4134,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'smbc'},
+  {date:'2026-04-15',name:'UQ mobileご利用料金',amount:-1653,type:'expense',cat:'通信費',icon:'📱',col:'#A78BFA',src:'smbc'},
+  {date:'2026-04-18',name:'ETCカード売上',amount:-1740,type:'expense',cat:'交通',icon:'✈️',col:'#FBBF24',src:'smbc'},
 ];
 
-const ACCOUNTS = [
-  { key:'all',     label:'すべて' },
-  { key:'rakuten', label:'楽天カード' },
-  { key:'smbc',    label:'三井住友' },
-  { key:'yucho',   label:'ゆうちょ' },
+let txns=[];
+let isDemo=true;
+let selM='all',selAcc='all',selTab='all',chartMode='bar';
+
+const ALL_MONTHS=[];
+for(let y=2024;y<=2027;y++) for(let m=1;m<=12;m++) ALL_MONTHS.push(`${y}-${String(m).padStart(2,'0')}`);
+function mlbl(m){return parseInt(m.split('-')[1])+'月';}
+function mfull(m){const[y,mo]=m.split('-');return `${y}年${parseInt(mo)}月`;}
+
+const CAT_RULES=[
+  {r:/ｾｲｺｰﾏｰﾄ|ｾｲｺ-ﾏ-ﾄ|セイコーマート|ﾛｰｿﾝ|ﾛ-ｿﾝ|ローソン|ｾﾌﾞﾝ.?ｲﾚﾌﾞﾝ|セブン.?イレブン|ファミリーマート|ﾌｧﾐﾘ|ﾐﾆｽﾄｯﾌﾟ/i,cat:'コンビニ',icon:'🏪',col:'#94A3B8'},
+  {r:/ＥＴＣ|ETC|日本航空|ＪＡＬ|JAL|ＡＮＡ|ANA|新幹線|空港|ｸｳｺｳ|ｱｲﾎﾟｽﾊﾟ-ｷﾝｸﾞ|駐車場|ﾀｸｼ|SUICA|PASMO|交通費/i,cat:'交通',icon:'✈️',col:'#FBBF24'},
+  {r:/ﾎｸﾚﾝ|ホクレン|ｴﾈｵｽ|ENEOS|出光|コスモ|ｺｽﾓ|ｾﾙﾌ|伊藤忠エネクス|ガソリン|ｷｸﾞﾅｽ|キグナス/i,cat:'ガソリン',icon:'⛽',col:'#F97316'},
+  {r:/電力|電気代|ﾃﾞﾝﾘﾖｸ|トウキヨウデンリヨク|東ガス|大阪ガス|水道局/i,cat:'光熱費',icon:'⚡',col:'#60A5FA'},
+  {r:/楽天モバイル|ﾗｸﾃﾝﾓﾊﾞｲﾙ|ドコモ|ﾄﾞｺﾓ|UQ|ｿﾌﾄﾊﾞﾝｸ|au\b|KDDI/i,cat:'通信費',icon:'📱',col:'#A78BFA'},
+  {r:/SPOTIFY|NETFLIX|APPLE.*BILL|APPLE COM|GOOGLE.*WORKSPACE|CLAUDE\.AI|CHATGPT|YOUTUBE|HULU|DAZN|AMAZON.*PRIME/i,cat:'サブスク',icon:'📺',col:'#EC4899'},
+  {r:/ﾗﾂｷ-|ラツキ|楽季|ｼﾖｸﾋﾝｶﾝ|食品館|アオバ|スーパー|エーマート|ナカガワ|ナガサワ|ｲｵﾝ|ﾔｵｺｰ/i,cat:'食料品',icon:'🛒',col:'#22C55E'},
+  {r:/SQ\*|イツキ|ヤクモ|飲食|ﾚｽﾄﾗﾝ|食堂|ﾗｰﾒﾝ|ｿﾊﾞ|ﾔｷﾆｸ|ｶﾌｪ|ｽﾀﾊﾞ|マクドナルド|吉野家|すき家|居酒屋|アカシア|モリノジョウゾウ/i,cat:'外食',icon:'🍽',col:'#4ADE80'},
+  {r:/AMAZON\.CO\.JP|AMAZON|楽天市場|ZOZOTOWN|ﾕﾆｸﾛ|ﾆﾄﾘ|ﾀﾞｲｿｰ|ダイソー|ﾒﾙｶﾘ|ビックカメラ|ディーシーエム/i,cat:'ショッピング',icon:'🛍',col:'#F87171'},
+  {r:/ﾄﾞﾗｯｸﾞｾｲﾑｽ|ドラッグセイムス|ﾏﾂﾓﾄｷﾖｼ|ﾂﾙﾊ|ｻﾂﾄﾞﾗ|薬局|調剤|ﾄﾞﾗｯｸﾞ/i,cat:'ドラッグ',icon:'💊',col:'#34D399'},
+  {r:/病院|クリニック|医院|歯科/i,cat:'医療',icon:'🏥',col:'#2DD4BF'},
+  {r:/楽天証券|証券|投信|積立/i,cat:'投資',icon:'📈',col:'#818CF8'},
+  {r:/保険|生命|損保|楽天生命/i,cat:'保険',icon:'🛡',col:'#6B7280'},
+  {r:/クロネコ|ヤマト運輸|佐川|日本郵便/i,cat:'配送',icon:'📦',col:'#C084FC'},
+  {r:/給与|賞与|salary/i,cat:'給与',icon:'💰',col:'#22C55E'},
 ];
+function gC(name){for(const r of CAT_RULES)if(r.r.test(name))return{cat:r.cat,icon:r.icon,col:r.col};return{cat:'その他',icon:'📋',col:'#52525B'};}
+function cCol(c){return(CAT_RULES.find(r=>r.cat===c)||{col:'#52525B'}).col;}
+function cIco(c){return(CAT_RULES.find(r=>r.cat===c)||{icon:'📋'}).icon;}
 
-// ─────────────────────────────────────────
-//  STATE
-// ─────────────────────────────────────────
-let S = {
-  txns: [],
-  isDemo: true,
-  month: 'all',
-  account: 'all',
-  chart: 'trend',
-  txnFilter: 'all',
-};
-
-// ─────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────
-function catOf(key) { return CATS.find(c => c.key === key) || CATS[CATS.length - 1]; }
-
-function detectCat(name, isIncome) {
-  if (isIncome) return 'salary';
-  const u = name.toUpperCase();
-  for (const c of CATS) {
-    if (c.key === 'other') continue;
-    for (const p of c.pat) {
-      if (u.includes(p.toUpperCase())) return c.key;
-    }
-  }
-  return 'other';
+function yen(n,sign=false){
+  const abs=Math.abs(n);
+  const s=abs>=10000?Math.round(abs/10000)+'万':abs.toLocaleString('ja-JP');
+  return (sign&&n>0?'+':'')+'¥'+s;
 }
 
-function fmt(n) {
-  return '¥' + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+function periodLabel(){
+  const dates=txns.filter(t=>(selM==='all'||t.date.startsWith(selM))&&(selAcc==='all'||t.src===selAcc)).map(t=>t.date).sort();
+  if(!dates.length)return '—';
+  if(selM!=='all'){const[y,mo]=selM.split('-');return `${y}年${parseInt(mo)}月`;}
+  const f=dates[0],tl=dates[dates.length-1];
+  if(f.slice(0,7)===tl.slice(0,7))return mfull(f.slice(0,7));
+  return `${mfull(f.slice(0,7))} 〜 ${mfull(tl.slice(0,7))}`;
 }
 
-function fmtK(n) {
-  const v = Math.abs(Math.round(n));
-  if (v >= 100000) return '¥' + (v / 10000).toFixed(0) + '万';
-  if (v >= 10000)  return '¥' + (v / 10000).toFixed(1) + '万';
-  return '¥' + v.toLocaleString('ja-JP');
-}
-
-function monthLabel(ym) {
-  const [y, m] = ym.split('-');
-  return `${y}年${parseInt(m)}月`;
-}
-
-function dayOfWeek(dateStr) {
-  const d = new Date(dateStr.replace(/\//g, '-'));
-  return '日月火水木金土'[d.getDay()];
-}
-
-let _uid = 1;
-function uid() { return String(_uid++); }
-
-// ─────────────────────────────────────────
-//  DEMO DATA
-// ─────────────────────────────────────────
-function makeDemoData() {
-  const txns = [];
-  function t(date, name, amount, account, isIncome = false) {
-    txns.push({ id: uid(), date, name, amount, account, isIncome, category: detectCat(name, isIncome) });
-  }
-
-  // March 2026
-  t('2026/03/03', 'セイコーマート', 450, 'rakuten');
-  t('2026/03/05', 'ローソン', 630, 'rakuten');
-  t('2026/03/07', 'ホクレンSS', 4800, 'rakuten');
-  t('2026/03/10', '日本航空国内線 JAL', 28000, 'rakuten');
-  t('2026/03/12', 'CLAUDE.AI', 2500, 'rakuten');
-  t('2026/03/14', 'AMAZON.CO.JP', 3200, 'rakuten');
-  t('2026/03/15', '楽天証券投信積立', 50000, 'rakuten');
-  t('2026/03/16', '楽天生命保険', 3200, 'rakuten');
-  t('2026/03/17', 'SPOTIFY', 980, 'rakuten');
-  t('2026/03/17', 'APPLE COM BILL', 1100, 'rakuten');
-  t('2026/03/19', 'ドラッグセイムス', 2100, 'rakuten');
-  t('2026/03/20', 'ダイソー', 880, 'rakuten');
-  t('2026/03/21', 'クロネコヤマト', 550, 'rakuten');
-  t('2026/03/22', 'トウキヨウデンリヨクデンキリヨ', 8400, 'rakuten');
-  t('2026/03/24', '楽天モバイル', 1078, 'rakuten');
-  t('2026/03/25', '給与', 350000, 'yucho', true);
-  t('2026/03/26', 'ドコモ', 4200, 'smbc');
-  t('2026/03/26', 'UQモバイル', 2178, 'smbc');
-  t('2026/03/27', 'ETC利用料', 1580, 'smbc');
-  t('2026/03/28', '伊藤忠エネクスSS', 5200, 'smbc');
-
-  // April 2026
-  t('2026/04/02', 'セイコーマート', 380, 'rakuten');
-  t('2026/04/04', 'ローソン', 520, 'rakuten');
-  t('2026/04/05', 'ホクレンSS', 4200, 'rakuten');
-  t('2026/04/07', '日本航空国内線 JAL', 22000, 'rakuten');
-  t('2026/04/09', 'CLAUDE.AI', 2500, 'rakuten');
-  t('2026/04/11', 'AMAZON.CO.JP', 5600, 'rakuten');
-  t('2026/04/12', 'ダイソー', 660, 'rakuten');
-  t('2026/04/14', '楽天証券投信積立', 50000, 'rakuten');
-  t('2026/04/15', '楽天生命保険', 3200, 'rakuten');
-  t('2026/04/16', 'SPOTIFY', 980, 'rakuten');
-  t('2026/04/16', 'APPLE COM BILL', 1100, 'rakuten');
-  t('2026/04/18', 'ドラッグセイムス', 1840, 'rakuten');
-  t('2026/04/20', 'クロネコヤマト', 660, 'rakuten');
-  t('2026/04/22', 'トウキヨウデンリヨクデンキリヨ', 7800, 'rakuten');
-  t('2026/04/23', '楽天モバイル', 1078, 'rakuten');
-  t('2026/04/25', '給与', 350000, 'yucho', true);
-  t('2026/04/26', 'ドコモ', 4200, 'smbc');
-  t('2026/04/26', 'UQモバイル', 2178, 'smbc');
-  t('2026/04/27', 'ETC利用料', 980, 'smbc');
-  t('2026/04/27', '伊藤忠エネクスSS', 4800, 'smbc');
-
-  return txns;
-}
-
-// ─────────────────────────────────────────
-//  FILTERS
-// ─────────────────────────────────────────
-function filtered(opts = {}) {
-  let txns = S.txns.slice();
-  const acct = opts.account ?? S.account;
-  const month = opts.month ?? S.month;
-
-  if (acct !== 'all') txns = txns.filter(t => t.account === acct);
-  if (month !== 'all') txns = txns.filter(t => t.date.startsWith(month));
-  return txns;
-}
-
-function summary(opts) {
-  const txns = filtered(opts);
-  const income  = txns.filter(t => t.isIncome).reduce((s, t) => s + t.amount, 0);
-  const expense = txns.filter(t => !t.isIncome).reduce((s, t) => s + t.amount, 0);
-  return { income, expense, balance: income - expense };
-}
-
-function months() {
-  const set = new Set(S.txns.map(t => t.date.slice(0, 7)));
-  return [...set].sort().reverse();
-}
-
-// ─────────────────────────────────────────
-//  RENDER PIPELINE
-// ─────────────────────────────────────────
-function render() {
-  renderBadge();
-  renderHeaderPeriod();
-  renderMonthPills();
-  renderHero();
-  renderAccountPills();
-  renderChart();
-  renderTxnList();
-}
-
-function renderBadge() {
-  const el = document.getElementById('demo-badge');
-  el.style.display = S.isDemo ? '' : 'none';
-}
-
-function renderHeaderPeriod() {
-  const el = document.getElementById('header-period');
-  if (S.month !== 'all') {
-    el.textContent = monthLabel(S.month);
-    return;
-  }
-  const ms = months();
-  if (!ms.length) { el.textContent = ''; return; }
-  if (ms.length === 1) { el.textContent = monthLabel(ms[0]); return; }
-  const first = ms[ms.length - 1];
-  const last = ms[0];
-  el.textContent = first.replace('-', '/') + ' – ' + last.replace('-', '/');
-}
-
-function renderMonthPills() {
-  const wrap = document.getElementById('month-pills');
-  const ms = months();
-  const pills = [{ key:'all', label:'全期間' }, ...ms.map(m => ({ key: m, label: monthLabel(m) }))];
-  wrap.innerHTML = pills.map(p =>
-    `<button class="pill${p.key === S.month ? ' active' : ''}" data-m="${p.key}">${p.label}</button>`
-  ).join('');
-  wrap.querySelectorAll('.pill').forEach(b => {
-    b.onclick = () => { S.month = b.dataset.m; render(); };
-  });
-}
-
-function renderHero() {
-  const { income, expense, balance } = summary();
-  const el = document.getElementById('hero-balance');
-  el.textContent = (balance >= 0 ? '+' : '−') + fmt(balance);
-  el.className = 'hero-balance ' + (balance >= 0 ? 'pos' : 'neg');
-  document.getElementById('hero-income').textContent  = '+' + fmt(income);
-  document.getElementById('hero-expense').textContent = '−' + fmt(expense);
-}
-
-function renderAccountPills() {
-  const wrap = document.getElementById('account-pills');
-  wrap.innerHTML = ACCOUNTS.map(a =>
-    `<button class="account-card${a.key === S.account ? ' active' : ''}" data-a="${a.key}">${a.label}</button>`
-  ).join('');
-  wrap.querySelectorAll('.account-card').forEach(b => {
-    b.onclick = () => { S.account = b.dataset.a; render(); };
-  });
-}
-
-// ─────────────────────────────────────────
-//  CHART
-// ─────────────────────────────────────────
-function renderChart() {
-  document.getElementById('tab-trend').classList.toggle('active', S.chart === 'trend');
-  document.getElementById('tab-breakdown').classList.toggle('active', S.chart === 'breakdown');
-  document.getElementById('chart-body').innerHTML =
-    S.chart === 'trend' ? buildBarChart() : buildDonutChart();
-}
-
-function buildBarChart() {
-  // Monthly data for current account filter (ignore month filter for trend)
-  const allTxns = S.account === 'all' ? S.txns : S.txns.filter(t => t.account === S.account);
-  const ms = [...new Set(allTxns.map(t => t.date.slice(0, 7)))].sort();
-
-  if (!ms.length) return '<div class="empty-state">データなし</div>';
-
-  const data = ms.map(m => {
-    const mTxns = allTxns.filter(t => t.date.startsWith(m));
-    return {
-      month: m,
-      income:  mTxns.filter(t => t.isIncome).reduce((s, t) => s + t.amount, 0),
-      expense: mTxns.filter(t => !t.isIncome).reduce((s, t) => s + t.amount, 0),
-    };
-  });
-
-  const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1);
-  const TICKS = 4;
-  const rawStep = maxVal / TICKS;
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const niceStep = Math.ceil(rawStep / mag) * mag;
-  const maxTick = niceStep * TICKS;
-
-  const H = 150;
-  const PL = 52;
-  const PB = 24;
-  const PT = 8;
-  const BAR_W = 18;
-  const GAP = 4;
-  const GROUP = BAR_W * 2 + GAP + 18;
-  const W = PL + data.length * GROUP + 16;
-
-  let grid = '', yLbls = '', bars = '', xLbls = '';
-
-  for (let i = 0; i <= TICKS; i++) {
-    const v = niceStep * i;
-    const y = PT + H - (v / maxTick) * H;
-    grid  += `<line x1="${PL}" y1="${y}" x2="${W}" y2="${y}" stroke="#27272A" stroke-width="1"/>`;
-    yLbls += `<text x="${PL - 5}" y="${y + 4}" text-anchor="end" fill="#52525B" font-size="9" font-family="DM Mono">${v === 0 ? '0' : fmtK(v).replace('¥','')}</text>`;
-  }
-
-  data.forEach((d, i) => {
-    const x = PL + i * GROUP;
-    const iH = maxTick > 0 ? (d.income  / maxTick) * H : 0;
-    const eH = maxTick > 0 ? (d.expense / maxTick) * H : 0;
-    const by = PT + H;
-    bars += `<rect x="${x}" y="${by - iH}" width="${BAR_W}" height="${iH || 0}" rx="3" fill="#22C55E" opacity="0.85"/>`;
-    bars += `<rect x="${x + BAR_W + GAP}" y="${by - eH}" width="${BAR_W}" height="${eH || 0}" rx="3" fill="#F87171" opacity="0.85"/>`;
-    const lbl = parseInt(d.month.slice(5)) + '月';
-    xLbls += `<text x="${x + BAR_W + GAP/2}" y="${by + 16}" text-anchor="middle" fill="#52525B" font-size="9" font-family="DM Mono">${lbl}</text>`;
-  });
-
-  const svgH = H + PT + PB;
-
-  return `
-    <div class="chart-legend">
-      <div class="legend-dot-row"><span class="dot" style="background:#22C55E"></span>収入</div>
-      <div class="legend-dot-row"><span class="dot" style="background:#F87171"></span>支出</div>
-    </div>
-    <div class="chart-scroll">
-      <svg width="${W}" height="${svgH}" style="display:block;min-width:100%">
-        ${grid}${yLbls}${bars}${xLbls}
-        <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT + H}" stroke="#27272A" stroke-width="1"/>
-      </svg>
-    </div>
-  `;
-}
-
-function buildDonutChart() {
-  const txns = filtered();
-  const expenses = txns.filter(t => !t.isIncome);
-  const total = expenses.reduce((s, t) => s + t.amount, 0);
-
-  if (!total) return '<div class="empty-state">支出データなし</div>';
-
-  const catMap = {};
-  expenses.forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount; });
-  const catData = Object.entries(catMap)
-    .map(([key, amount]) => ({ key, amount, cat: catOf(key) }))
-    .sort((a, b) => b.amount - a.amount);
-
-  const SIZE = 150;
-  const CX = SIZE / 2, CY = SIZE / 2;
-  const R = 58, r = 36;
-  let paths = '';
-  let angle = -Math.PI / 2;
-  const GAP = 0.025;
-
-  catData.forEach(({ amount, cat }) => {
-    const frac = amount / total;
-    const end = angle + frac * 2 * Math.PI;
-    const sa = angle + GAP, ea = end - GAP;
-    const large = frac > 0.5 ? 1 : 0;
-    const p = (a, radius) => [CX + radius * Math.cos(a), CY + radius * Math.sin(a)];
-    const [x1,y1] = p(sa, R), [x2,y2] = p(ea, R);
-    const [x3,y3] = p(ea, r), [x4,y4] = p(sa, r);
-    const d = `M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${x3},${y3} A${r},${r},0,${large},0,${x4},${y4}Z`;
-    paths += `<path d="${d}" fill="${cat.color}" opacity="0.9"/>`;
-    angle = end;
-  });
-
-  const legend = catData.map(({ amount, cat }) => {
-    const pct = Math.round(amount / total * 100);
-    return `
-      <div class="legend-row">
-        <div class="legend-dot-circle" style="background:${cat.color}"></div>
-        <div class="legend-name">${cat.icon} ${cat.name}</div>
-        <div class="legend-pct">${pct}%</div>
-        <div class="legend-amt">${fmtK(amount)}</div>
-      </div>`;
-  }).join('');
-
-  return `
-    <div class="donut-wrap">
-      <div class="donut-svg-container">
-        <svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">${paths}</svg>
-        <div class="donut-center-text">
-          <div class="donut-center-label">支出合計</div>
-          <div class="donut-center-amount">${fmtK(total)}</div>
-        </div>
-      </div>
-      <div class="donut-legend">${legend}</div>
-    </div>
-  `;
-}
-
-// ─────────────────────────────────────────
-//  TRANSACTION LIST
-// ─────────────────────────────────────────
-function renderTxnList() {
-  const el = document.getElementById('txn-list');
-  let txns = filtered();
-
-  if (S.txnFilter === 'income')  txns = txns.filter(t => t.isIncome);
-  if (S.txnFilter === 'expense') txns = txns.filter(t => !t.isIncome);
-  txns.sort((a, b) => b.date.localeCompare(a.date));
-
-  if (!txns.length) { el.innerHTML = '<div class="empty-state">取引なし</div>'; return; }
-
-  const byDate = {};
-  txns.forEach(t => { (byDate[t.date] = byDate[t.date] || []).push(t); });
-
-  let html = '';
-  Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).forEach(([date, rows]) => {
-    const d = new Date(date.replace(/\//g, '-'));
-    html += `<div class="date-header">${d.getMonth()+1}月${d.getDate()}日（${dayOfWeek(date)}）</div>`;
-    rows.forEach(t => {
-      const cat = catOf(t.category);
-      const acctLabel = ACCOUNTS.find(a => a.key === t.account)?.label || t.account;
-      html += `
-        <div class="txn-row">
-          <div class="txn-icon-wrap" style="background:${cat.color}1A">${cat.icon}</div>
-          <div class="txn-body">
-            <div class="txn-name">${t.name}</div>
-            <div class="txn-tags">
-              <span class="tag">${cat.name}</span>
-              <span class="tag">${acctLabel}</span>
-            </div>
-          </div>
-          <div class="txn-amt ${t.isIncome ? 'income' : 'expense'}">
-            ${t.isIncome ? '+' : '−'}${fmt(t.amount)}
-          </div>
-        </div>`;
-    });
-  });
-  el.innerHTML = html;
-}
-
-// ─────────────────────────────────────────
-//  FILE DETECTION
-// ─────────────────────────────────────────
-function detectAccount(filename) {
-  const l = filename.toLowerCase();
-  if (l.includes('rakuten') || l.includes('楽天') || l.includes('statement')) return 'rakuten';
-  if (l.includes('smbc') || l.includes('vpass') || l.includes('mitsui') || l.includes('三井')) return 'smbc';
+function detectSrc(fname){
+  const f=fname.toLowerCase();
+  if(f.includes('rakuten')||f.includes('楽天')||f.includes('statement'))return 'rakuten';
+  if(f.includes('smbc')||f.includes('vpass')||f.includes('mitsui')||f.includes('三井'))return 'smbc';
   return 'yucho';
 }
 
-// ─────────────────────────────────────────
-//  CSV PARSER
-// ─────────────────────────────────────────
-function parseCSV(text, account) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const txns = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const c = lines[i].split(',').map(s => s.replace(/^["']+|["']+$/g, '').trim());
-    try {
-      if (account === 'rakuten') {
-        // 利用日,利用店名,利用者,支払方法,利用金額,手数料,支払総額,当月請求額,翌月繰越
-        const date = c[0]?.replace(/-/g, '/');
-        const name = c[1];
-        const amount = parseInt((c[4] || '').replace(/,/g, ''));
-        if (date && name && amount > 0)
-          txns.push({ id: uid(), date, name, amount, account, isIncome: false, category: detectCat(name, false) });
-      } else if (account === 'smbc') {
-        // 年月日,摘要,お引出し,お預入れ,残高
-        const date = c[0]?.replace(/-/g, '/');
-        const name = c[1];
-        const wd = parseInt((c[2] || '').replace(/,/g, '')) || 0;
-        const dp = parseInt((c[3] || '').replace(/,/g, '')) || 0;
-        if (date && name) {
-          if (wd > 0) txns.push({ id: uid(), date, name, amount: wd, account, isIncome: false, category: detectCat(name, false) });
-          if (dp > 0) txns.push({ id: uid(), date, name, amount: dp, account, isIncome: true,  category: detectCat(name, true)  });
-        }
-      } else {
-        // ゆうちょ: 年月日,お取り扱い内容,お預入,お引出,残高
-        const date = c[0]?.replace(/-/g, '/');
-        const name = c[1];
-        const dp = parseInt((c[2] || '').replace(/,/g, '')) || 0;
-        const wd = parseInt((c[3] || '').replace(/,/g, '')) || 0;
-        if (date && name) {
-          if (dp > 0) txns.push({ id: uid(), date, name, amount: dp, account, isIncome: true,  category: detectCat(name, true)  });
-          if (wd > 0) txns.push({ id: uid(), date, name, amount: wd, account, isIncome: false, category: detectCat(name, false) });
-        }
-      }
-    } catch (_) {}
+async function parsePDF(file,src){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let full='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);
+    const ct=await pg.getTextContent();
+    full+=ct.items.map(it=>it.str).join(' ')+'\n';
   }
-  return txns;
+  const out=[];
+  const re=/(\d{4}\/\d{2}\/\d{2})\s+(.+?)\s+(本人|家族|ETC)[*＊]?\s+\S+払い\s+([\d,]+)\s+[\d,]+\s+[\d,]+\s+[\d,]+/g;
+  let m;
+  while((m=re.exec(full))!==null){
+    const date=m[1].replace(/\//g,'-');
+    const name=m[2].trim();
+    const amount=-parseInt(m[4].replace(/,/g,''),10);
+    if(!name||isNaN(amount)||amount===0)continue;
+    const g=gC(name);
+    out.push({date,name,amount,type:'expense',...g,src});
+  }
+  return out;
 }
 
-// ─────────────────────────────────────────
-//  PDF PARSER
-// ─────────────────────────────────────────
-async function parsePDF(buf, account) {
-  const txns = [];
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-
-    for (let p = 1; p <= pdf.numPages; p++) {
-      const page    = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      const text    = content.items.map(i => i.str).join(' ');
-
-      if (account === 'rakuten') {
-        const re = /(\d{4}\/\d{2}\/\d{2})\s+(.+?)\s+(本人|家族|ETC)[*＊]?\s+\S+払い\s+([\d,]+)\s+[\d,]+\s+[\d,]+\s+[\d,]+/g;
-        let m;
-        while ((m = re.exec(text)) !== null) {
-          const date = m[1], name = m[2].trim(), amount = parseInt(m[4].replace(/,/g, ''));
-          if (amount > 0) txns.push({ id: uid(), date, name, amount, account, isIncome: false, category: detectCat(name, false) });
-        }
-      }
-
-      // Fallback generic pattern
-      if (!txns.length) {
-        const re = /(\d{4}[\/\-]\d{2}[\/\-]\d{2})\s+([^\d]{2,30?}?)\s+([\d,]{3,})/g;
-        let m;
-        while ((m = re.exec(text)) !== null) {
-          const date = m[1].replace(/-/g, '/'), name = m[2].trim();
-          const amount = parseInt(m[3].replace(/,/g, ''));
-          if (amount > 0 && amount < 10_000_000)
-            txns.push({ id: uid(), date, name, amount, account, isIncome: false, category: detectCat(name, false) });
-        }
-      }
+function splitCSV(line){
+  const r=[];let c='';let q=false;
+  for(const ch of line){if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;}
+  r.push(c.trim());return r;
+}
+function parseCSV(text,src){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('#'));
+  if(lines.length<2)return[];
+  const out=[];
+  lines.slice(1).forEach(row=>{
+    const c=splitCSV(row);if(c.length<2)return;
+    let date='',name='',amount=0;
+    if(src==='rakuten'){
+      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
+      const raw=parseInt((c[7]||c[6]||c[4]||'0').replace(/[^\d]/g,''),10);
+      amount=isNaN(raw)?0:-raw;
+    }else if(src==='smbc'){
+      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
+      const w=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
+      const d2=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
+      amount=d2>0?d2:w>0?-w:0;
+    }else{
+      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
+      const dep=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
+      const wit=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
+      amount=dep>0?dep:wit>0?-wit:0;
     }
-  } catch (e) { console.warn('PDF parse error:', e); }
-  return txns;
+    if(!date.match(/\d{4}-\d{2}-\d{2}/)||!name)return;
+    const g=gC(name);
+    out.push({date,name,amount,type:amount>=0?'income':'expense',...g,src});
+  });
+  return out;
 }
 
-// ─────────────────────────────────────────
-//  DEDUP & MERGE
-// ─────────────────────────────────────────
-function dedupe(existing, incoming) {
-  const keys = new Set(existing.map(t => `${t.date}|${t.name}|${t.amount}`));
-  return incoming.filter(t => {
-    const k = `${t.date}|${t.name}|${t.amount}`;
-    if (keys.has(k)) return false;
-    keys.add(k);
-    return true;
+async function processFile(file){
+  const src=detectSrc(file.name);
+  let newT=[];
+  try{
+    if(file.name.toLowerCase().endsWith('.pdf')) newT=await parsePDF(file,src);
+    else{
+      const buf=await file.arrayBuffer();
+      let text;try{text=new TextDecoder('shift-jis').decode(buf);}catch{text=new TextDecoder('utf-8').decode(buf);}
+      newT=parseCSV(text,src);
+    }
+    if(newT.length){
+      if(isDemo){
+        // デモデータを実データで置き換え
+        txns=newT;
+        isDemo=false;
+        document.getElementById('demo-badge').style.display='none';
+      }else{
+        const ex=new Set(txns.map(t=>`${t.date}|${t.name}|${t.amount}`));
+        const fresh=newT.filter(t=>!ex.has(`${t.date}|${t.name}|${t.amount}`));
+        txns=[...txns,...fresh];
+      }
+      save();selM='all';renderMonths();render();
+      toast(`${newT.length}件を読み込みました ✓`);
+    }else toast('明細が見つかりませんでした');
+  }catch(e){console.error(e);toast('エラー: '+e.message);}
+}
+function onFile(e){Array.from(e.target.files).forEach(processFile);e.target.value='';}
+function onDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');Array.from(e.dataTransfer.files).forEach(processFile);}
+
+function save(){try{localStorage.setItem('finance_txns',JSON.stringify(txns));localStorage.setItem('finance_demo',isDemo?'1':'0');}catch{}}
+function load(){
+  try{
+    const d=localStorage.getItem('finance_txns');
+    const dm=localStorage.getItem('finance_demo');
+    if(d&&dm==='0'){txns=JSON.parse(d);isDemo=false;document.getElementById('demo-badge').style.display='none';}
+    else{txns=[...DEMO_DATA];isDemo=true;}
+  }catch{txns=[...DEMO_DATA];isDemo=true;}
+}
+
+function fmBase(){return txns.filter(t=>(selM==='all'||t.date.startsWith(selM))&&(selAcc==='all'||t.src===selAcc));}
+function fmFull(){return fmBase().filter(t=>selTab==='all'||t.type===selTab);}
+
+function setAcc(acc,el){selAcc=acc;document.querySelectorAll('.acc').forEach(c=>c.classList.remove('on'));el.classList.add('on');render();}
+function setTab(tab,el){selTab=tab;document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderTxns();}
+function setMonth(m,el){selM=m;document.querySelectorAll('.mp').forEach(p=>p.classList.remove('on'));el.classList.add('on');render();}
+function setChart(m,el){
+  chartMode=m;
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('on'));el.classList.add('on');
+  document.getElementById('cv-bar').style.display=m==='bar'?'block':'none';
+  document.getElementById('cv-donut').style.display=m==='donut'?'block':'none';
+  document.getElementById('chart-title').textContent=m==='bar'?'収支推移':'支出内訳';
+  renderChart();
+}
+
+function render(){
+  const f=fmBase();
+  const inc=f.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=f.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net=inc+exp;
+  const nel=document.getElementById('net');
+  nel.textContent=yen(net,true);
+  nel.className='hero-amt '+(net>=0?'pos':'neg');
+  document.getElementById('inc').textContent=yen(inc);
+  document.getElementById('exp').textContent=yen(Math.abs(exp));
+  ['rakuten','smbc','yucho'].forEach(s=>{
+    const v=f.filter(t=>t.src===s).reduce((sm,t)=>sm+t.amount,0);
+    const el=document.getElementById('a-'+s);
+    el.textContent=yen(v,true);
+    el.className='acc-amt '+(v>0?'pos':v<0?'neg':'neu');
+  });
+  document.getElementById('a-all').textContent=yen(inc+exp,true);
+  document.getElementById('period-label').textContent=periodLabel();
+  renderTxns();renderChart();
+}
+
+function renderTxns(){
+  const f=fmFull().sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('txns');
+  if(!f.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">取引データがありません</div>';return;}
+  let html='';let last='';
+  f.slice(0,80).forEach(t=>{
+    if(t.date!==last){
+      const[y,mo,d]=t.date.split('-');
+      html+=`<div class="dh">${y}年${parseInt(mo)}月${parseInt(d)}日</div>`;
+      last=t.date;
+    }
+    html+=`<div class="txn">
+      <div class="txn-ic">${t.icon||'📋'}</div>
+      <div class="txn-bd">
+        <div class="txn-nm">${esc(t.name)}</div>
+        <div class="txn-meta">
+          <span class="tag">${t.cat}</span>
+          <span class="tag ${t.src}">${t.src==='rakuten'?'楽天':t.src==='smbc'?'SMBC':'ゆうちょ'}</span>
+        </div>
+      </div>
+      <div class="txn-amt ${t.amount<0?'neg':'pos'}">${yen(t.amount)}</div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function renderChart(){chartMode==='bar'?renderBars():renderDonut();}
+
+function renderBars(){
+  const used=ALL_MONTHS.filter(m=>txns.some(t=>t.date.startsWith(m)));
+  if(!used.length){document.getElementById('bar-inner').innerHTML='';document.getElementById('bar-xlabels').innerHTML='';document.getElementById('chart-sub').textContent='';return;}
+  const show=used.slice(-7);
+  const data=show.map(m=>({
+    m,
+    inc:txns.filter(t=>t.date.startsWith(m)&&t.type==='income'&&(selAcc==='all'||t.src===selAcc)).reduce((s,t)=>s+t.amount,0),
+    exp:Math.abs(txns.filter(t=>t.date.startsWith(m)&&t.type==='expense'&&(selAcc==='all'||t.src===selAcc)).reduce((s,t)=>s+t.amount,0))
+  }));
+  const mx=Math.max(...data.map(d=>Math.max(d.inc,d.exp)),1);
+  const H=108;
+  const ysteps=[mx,mx*.75,mx*.5,mx*.25,0];
+  document.getElementById('bar-yaxis').innerHTML=ysteps.map(v=>`<div class="bar-ylabel">${v>0?yen(v):''}</div>`).join('');
+  document.getElementById('bar-inner').innerHTML=data.map(d=>`
+    <div class="bg">
+      <div class="bw">
+        <div class="b inc" style="height:${Math.max(2,Math.round(d.inc/mx*H))}px" title="収入 ${yen(d.inc)}"></div>
+        <div class="b exp" style="height:${Math.max(2,Math.round(d.exp/mx*H))}px" title="支出 ${yen(d.exp)}"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('bar-xlabels').innerHTML=data.map(d=>`<div class="bar-xl">${mlbl(d.m)}</div>`).join('');
+  if(show.length>=2) document.getElementById('chart-sub').textContent=`${mfull(show[0])} 〜 ${mfull(show[show.length-1])}`;
+  else if(show.length===1) document.getElementById('chart-sub').textContent=mfull(show[0]);
+}
+
+function renderDonut(){
+  const f=fmBase().filter(t=>t.type==='expense');
+  const map={};
+  f.forEach(t=>{map[t.cat]=(map[t.cat]||0)+Math.abs(t.amount);});
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,9);
+  const total=sorted.reduce((s,[,v])=>s+v,0)||1;
+  const dates=fmBase().map(t=>t.date).sort();
+  if(dates.length){
+    const f0=dates[0].slice(0,7),tl=dates[dates.length-1].slice(0,7);
+    document.getElementById('chart-sub').textContent=f0===tl?mfull(f0):`${mfull(f0)} 〜 ${mfull(tl)}`;
+  }
+  const cx=72,cy=72,R=62,ri=42;
+  let ang=-Math.PI/2;
+  const gap=0.03;
+  let paths='';
+  sorted.forEach(([cat,val])=>{
+    const frac=val/total;
+    const sweep=frac*Math.PI*2-gap;
+    if(sweep<=0)return;
+    const ea=ang+sweep;
+    const x1=cx+R*Math.cos(ang+gap/2),y1=cy+R*Math.sin(ang+gap/2);
+    const x2=cx+R*Math.cos(ea),y2=cy+R*Math.sin(ea);
+    const ix1=cx+ri*Math.cos(ea),iy1=cy+ri*Math.sin(ea);
+    const ix2=cx+ri*Math.cos(ang+gap/2),iy2=cy+ri*Math.sin(ang+gap/2);
+    const lg=sweep>Math.PI?1:0;
+    paths+=`<path d="M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${ix1.toFixed(2)},${iy1.toFixed(2)} A${ri},${ri} 0 ${lg},0 ${ix2.toFixed(2)},${iy2.toFixed(2)} Z" fill="${cCol(cat)}" opacity=".88"/>`;
+    ang+=frac*Math.PI*2;
+  });
+  document.getElementById('dsvg').innerHTML=paths;
+  document.getElementById('dc-val').textContent=yen(total);
+  document.getElementById('dlegend').innerHTML=sorted.slice(0,6).map(([cat,val])=>`
+    <div class="dl-row">
+      <div class="dl-dot" style="background:${cCol(cat)}"></div>
+      <div class="dl-name">${cIco(cat)} ${cat}</div>
+      <div class="dl-right">
+        <div class="dl-pct">${Math.round(val/total*100)}%</div>
+        <span class="dl-amt">${yen(val)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderMonths(){
+  const used=new Set(txns.map(t=>t.date.slice(0,7)));
+  const row=document.getElementById('mrow');
+  row.innerHTML='';
+  const ab=document.createElement('button');
+  ab.className='mp'+(selM==='all'?' on':'');
+  ab.textContent='全期間';ab.onclick=function(){setMonth('all',this);};
+  row.appendChild(ab);
+  ALL_MONTHS.filter(m=>used.has(m)).sort().reverse().forEach(m=>{
+    const b=document.createElement('button');
+    b.className='mp'+(selM===m?' on':'');
+    b.textContent=mlbl(m);b.onclick=function(){setMonth(m,this);};
+    row.appendChild(b);
   });
 }
 
-async function handleFiles(files) {
-  let totalAdded = 0;
-  for (const file of files) {
-    const account = detectAccount(file.name);
-    let incoming = [];
-    if (/\.csv$/i.test(file.name)) {
-      incoming = parseCSV(await file.text(), account);
-    } else if (/\.pdf$/i.test(file.name)) {
-      incoming = await parsePDF(await file.arrayBuffer(), account);
-    }
-    const unique = dedupe(S.txns, incoming);
-    if (!unique.length) continue;
-
-    if (S.isDemo) {
-      S.txns = unique;
-      S.isDemo = false;
-    } else {
-      S.txns = [...S.txns, ...unique];
-    }
-    totalAdded += unique.length;
-  }
-  if (totalAdded > 0) {
-    save();
-    toast(`${totalAdded}件の取引を読み込みました`);
-    render();
-  } else {
-    toast('新しいデータが見つかりませんでした');
-  }
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-// ─────────────────────────────────────────
-//  STORAGE
-// ─────────────────────────────────────────
-function save() {
-  try {
-    localStorage.setItem('finance_txns', JSON.stringify(S.txns));
-    localStorage.setItem('finance_demo', String(S.isDemo));
-  } catch (_) {}
-}
-
-function load() {
-  try {
-    const raw = localStorage.getItem('finance_txns');
-    if (!raw) return false;
-    S.txns = JSON.parse(raw);
-    S.isDemo = localStorage.getItem('finance_demo') === 'true';
-    if (S.txns.length) return true;
-  } catch (_) {}
-  return false;
-}
-
-// ─────────────────────────────────────────
-//  TOAST
-// ─────────────────────────────────────────
-function toast(msg) {
-  const wrap = document.getElementById('toast-wrap');
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
-}
-
-// ─────────────────────────────────────────
-//  EVENTS
-// ─────────────────────────────────────────
-function setupEvents() {
-  const fileInput  = document.getElementById('file-input');
-  const uploadArea = document.getElementById('upload-area');
-
-  document.getElementById('btn-upload').onclick = () => fileInput.click();
-  uploadArea.onclick = () => fileInput.click();
-
-  fileInput.onchange = e => {
-    const files = Array.from(e.target.files).filter(f => /\.(pdf|csv)$/i.test(f.name));
-    if (files.length) handleFiles(files);
-    e.target.value = '';
-  };
-
-  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-  uploadArea.addEventListener('drop', e => {
-    e.preventDefault();
-    uploadArea.classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(f => /\.(pdf|csv)$/i.test(f.name));
-    if (files.length) handleFiles(files);
-  });
-
-  document.getElementById('tab-trend').onclick     = () => { S.chart = 'trend';     renderChart(); };
-  document.getElementById('tab-breakdown').onclick = () => { S.chart = 'breakdown'; renderChart(); };
-
-  document.querySelectorAll('.txn-filter-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.txn-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      S.txnFilter = btn.dataset.filter;
-      renderTxnList();
-    };
-  });
-}
-
-// ─────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────
-function init() {
-  if (!load()) {
-    S.txns  = makeDemoData();
-    S.isDemo = true;
-    save();
-  }
-  setupEvents();
-  render();
-}
-
-init();
+load();renderMonths();render();
 </script>
 </body>
 </html>

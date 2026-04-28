@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#0A0A0B">
 <title>家計</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -136,6 +137,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-botto
   <div>
     <div class="hd-title">家計 <span class="demo-badge" id="demo-badge">DEMO</span></div>
     <div class="hd-period" id="period-label">—</div>
+  <div id="sync-status" style="font-size:10px;font-family:var(--mono);margin-top:2px"></div>
   </div>
   <div class="hd-plus" onclick="document.getElementById('fu').click()" title="PDFまたはCSVをアップロード">＋</div>
 </div>
@@ -222,6 +224,10 @@ body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-botto
 
 <script>
 if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const SUPABASE_URL='https://ieoczpznyfplrffsxonk.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imllb2N6cHpueWZwbHJmZnN4b25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzY3NjYsImV4cCI6MjA5Mjk1Mjc2Nn0.4Da7diAmfbLSz0Uy0HqHW74akDhBtmMwSjcrAmEdWtA';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 // ── デモデータ（楽天の実明細フォーマットに合わせて作成）──
 const DEMO_DATA = [
@@ -412,32 +418,63 @@ async function processFile(file){
       newT=parseCSV(text,src);
     }
     if(newT.length){
-      if(isDemo){
-        // デモデータを実データで置き換え
-        txns=newT;
-        isDemo=false;
-        document.getElementById('demo-badge').style.display='none';
+      const ex=new Set(txns.filter(t=>!isDemo).map(t=>`${t.date}|${t.name}|${t.amount}`));
+      const fresh=isDemo?newT:newT.filter(t=>!ex.has(`${t.date}|${t.name}|${t.amount}`));
+      if(fresh.length){
+        const ok=await saveToDB(fresh);
+        if(ok){
+          selM='all';
+          await loadFromDB();
+          toast(`${fresh.length}件を読み込みました ✓`);
+        }else{
+          toast('保存に失敗しました');
+        }
       }else{
-        const ex=new Set(txns.map(t=>`${t.date}|${t.name}|${t.amount}`));
-        const fresh=newT.filter(t=>!ex.has(`${t.date}|${t.name}|${t.amount}`));
-        txns=[...txns,...fresh];
+        toast('新しいデータがありませんでした');
       }
-      save();selM='all';renderMonths();render();
-      toast(`${newT.length}件を読み込みました ✓`);
     }else toast('明細が見つかりませんでした');
   }catch(e){console.error(e);toast('エラー: '+e.message);}
 }
 function onFile(e){Array.from(e.target.files).forEach(processFile);e.target.value='';}
 function onDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');Array.from(e.dataTransfer.files).forEach(processFile);}
 
-function save(){try{localStorage.setItem('finance_txns',JSON.stringify(txns));localStorage.setItem('finance_demo',isDemo?'1':'0');}catch{}}
-function load(){
+function setSyncStatus(s){
+  const el=document.getElementById('sync-status');
+  if(s==='loading'){el.textContent='⟳ 同期中...';el.style.color='var(--muted)';}
+  else if(s==='ok'){el.textContent='✓ 同期済み';el.style.color='var(--green)';}
+  else{el.textContent='! オフライン';el.style.color='var(--red)';}
+}
+
+async function loadFromDB(){
+  setSyncStatus('loading');
   try{
-    const d=localStorage.getItem('finance_txns');
-    const dm=localStorage.getItem('finance_demo');
-    if(d&&dm==='0'){txns=JSON.parse(d);isDemo=false;document.getElementById('demo-badge').style.display='none';}
-    else{txns=[...DEMO_DATA];isDemo=true;}
-  }catch{txns=[...DEMO_DATA];isDemo=true;}
+    const {data,error}=await sb.from('transactions').select('*').order('date',{ascending:false});
+    if(error)throw error;
+    if(data&&data.length>0){
+      txns=data;isDemo=false;
+      document.getElementById('demo-badge').style.display='none';
+    }else{
+      txns=[...DEMO_DATA];isDemo=true;
+    }
+    setSyncStatus('ok');
+  }catch(e){
+    setSyncStatus('error');
+    txns=[...DEMO_DATA];isDemo=true;
+  }
+  renderMonths();render();
+}
+
+async function saveToDB(newTxns){
+  setSyncStatus('loading');
+  const rows=newTxns.map(t=>({
+    date:t.date,name:t.name,amount:t.amount,
+    type:t.type,cat:t.cat,icon:t.icon,col:t.col,src:t.src
+  }));
+  const {error}=await sb.from('transactions')
+    .upsert(rows,{onConflict:'date,name,amount,src',ignoreDuplicates:true});
+  if(error){setSyncStatus('error');return false;}
+  setSyncStatus('ok');
+  return true;
 }
 
 function fmBase(){return txns.filter(t=>(selM==='all'||t.date.startsWith(selM))&&(selAcc==='all'||t.src===selAcc));}
@@ -593,7 +630,7 @@ function toast(msg){
   setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-load();renderMonths();render();
+loadFromDB();
 </script>
 </body>
 </html>

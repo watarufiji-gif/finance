@@ -129,96 +129,115 @@ body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-botto
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--text);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;white-space:nowrap}
 .toast.show{opacity:1}
 .sp{height:40px}
+@media (min-width: 768px) {
+  body{max-width:1100px;padding:0 40px}
+  .pc-layout{display:flex;gap:32px;align-items:flex-start}
+  .pc-left{width:380px;flex-shrink:0;position:sticky;top:20px}
+  .pc-right{flex:1;min-width:0}
+  .hero-amt{font-size:48px}
+  .hero-box-val{font-size:22px}
+  .bar-area{height:160px}
+}
 </style>
 </head>
 <body>
 
-<div class="hd">
-  <div>
-    <div class="hd-title">家計 <span class="demo-badge" id="demo-badge">DEMO</span></div>
-    <div class="hd-period" id="period-label">—</div>
-  <div id="sync-status" style="font-size:10px;font-family:var(--mono);margin-top:2px"></div>
-  </div>
-  <div class="hd-plus" onclick="document.getElementById('fu').click()" title="PDFまたはCSVをアップロード">＋</div>
-</div>
+<div class="pc-layout">
+  <div class="pc-left">
 
-<div class="mwrap"><div class="mrow" id="mrow"></div></div>
-
-<div class="hero">
-  <div class="hero-lbl">差引残高</div>
-  <div class="hero-amt" id="net">¥0</div>
-  <div class="hero-grid">
-    <div class="hero-box"><div class="hero-box-lbl">収入</div><div class="hero-box-val inc" id="inc">¥0</div></div>
-    <div class="hero-box"><div class="hero-box-lbl">支出</div><div class="hero-box-val exp" id="exp">¥0</div></div>
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-lbl">口座</div>
-  <div class="acc-row">
-    <div class="acc on" onclick="setAcc('all',this)"><div class="acc-dot" style="background:var(--muted)"></div><div class="acc-name">すべて</div><div class="acc-amt neu" id="a-all">¥0</div></div>
-    <div class="acc" onclick="setAcc('rakuten',this)"><div class="acc-dot" style="background:var(--rakuten)"></div><div class="acc-name">楽天カード</div><div class="acc-amt neg" id="a-rakuten">¥0</div></div>
-    <div class="acc" onclick="setAcc('smbc',this)"><div class="acc-dot" style="background:var(--smbc)"></div><div class="acc-name">三井住友</div><div class="acc-amt neg" id="a-smbc">¥0</div></div>
-    <div class="acc" onclick="setAcc('yucho',this)"><div class="acc-dot" style="background:var(--yucho)"></div><div class="acc-name">ゆうちょ</div><div class="acc-amt pos" id="a-yucho">¥0</div></div>
-  </div>
-</div>
-
-<div class="chart-card">
-  <div class="chart-hd">
-    <div class="chart-title" id="chart-title">収支推移</div>
-    <div class="chart-tabs">
-      <button class="ctab on" onclick="setChart('bar',this)">推移</button>
-      <button class="ctab" onclick="setChart('donut',this)">内訳</button>
-    </div>
-  </div>
-  <div class="chart-sub" id="chart-sub"></div>
-
-  <div id="cv-bar">
-    <div class="bar-area">
-      <div class="bar-yaxis" id="bar-yaxis"></div>
-      <div class="bar-gridlines"><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div></div>
-      <div class="bar-inner" id="bar-inner"></div>
-      <div class="bar-xlabels" id="bar-xlabels"></div>
-    </div>
-    <div class="bar-leg">
-      <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--green)"></div>収入</div>
-      <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--red)"></div>支出</div>
-    </div>
-  </div>
-
-  <div id="cv-donut" style="display:none">
-    <div class="donut-wrap">
-      <div class="donut-svg-wrap">
-        <svg id="dsvg" width="144" height="144" viewBox="0 0 144 144"></svg>
-        <div class="donut-center"><div class="donut-center-val" id="dc-val">¥0</div><div class="donut-center-lbl">支出合計</div></div>
+    <div class="hd">
+      <div>
+        <div class="hd-title">家計 <span class="demo-badge" id="demo-badge">DEMO</span></div>
+        <div class="hd-period" id="period-label">—</div>
+        <div id="sync-status" style="font-size:10px;font-family:var(--mono);margin-top:2px"></div>
       </div>
-      <div class="donut-legend" id="dlegend"></div>
+      <div class="hd-plus" onclick="document.getElementById('fu').click()" title="PDFまたはCSVをアップロード">＋</div>
     </div>
-  </div>
-</div>
 
-<div class="tabs">
-  <button class="ttab on" onclick="setTab('all',this)">すべて</button>
-  <button class="ttab" onclick="setTab('income',this)">収入</button>
-  <button class="ttab" onclick="setTab('expense',this)">支出</button>
-</div>
-<div class="txns" id="txns"></div>
+    <div class="mwrap"><div class="mrow" id="mrow"></div></div>
 
-<div class="upload" id="dropzone"
-  onclick="document.getElementById('fu').click()"
-  ondragover="event.preventDefault();this.classList.add('drag')"
-  ondragleave="this.classList.remove('drag')"
-  ondrop="onDrop(event)">
-  <input type="file" id="fu" accept=".pdf,.csv" multiple style="display:none" onchange="onFile(event)">
-  <div class="upload-ic">📂</div>
-  <div class="upload-t">実データをアップロード</div>
-  <div class="upload-s">楽天・三井住友・ゆうちょの PDF または CSV<br>アップロードするとデモデータが置き換わります</div>
-  <div class="ubadges">
-    <span class="ub" style="background:rgba(255,64,64,.15);color:var(--rakuten)">楽天 PDF/CSV</span>
-    <span class="ub" style="background:rgba(77,159,255,.15);color:var(--smbc)">SMBC CSV</span>
-    <span class="ub" style="background:rgba(74,222,128,.15);color:var(--yucho)">ゆうちょ CSV</span>
-  </div>
-</div>
+    <div class="hero">
+      <div class="hero-lbl">差引残高</div>
+      <div class="hero-amt" id="net">¥0</div>
+      <div class="hero-grid">
+        <div class="hero-box"><div class="hero-box-lbl">収入</div><div class="hero-box-val inc" id="inc">¥0</div></div>
+        <div class="hero-box"><div class="hero-box-lbl">支出</div><div class="hero-box-val exp" id="exp">¥0</div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-lbl">口座</div>
+      <div class="acc-row">
+        <div class="acc on" onclick="setAcc('all',this)"><div class="acc-dot" style="background:var(--muted)"></div><div class="acc-name">すべて</div><div class="acc-amt neu" id="a-all">¥0</div></div>
+        <div class="acc" onclick="setAcc('rakuten',this)"><div class="acc-dot" style="background:var(--rakuten)"></div><div class="acc-name">楽天カード</div><div class="acc-amt neg" id="a-rakuten">¥0</div></div>
+        <div class="acc" onclick="setAcc('smbc',this)"><div class="acc-dot" style="background:var(--smbc)"></div><div class="acc-name">三井住友</div><div class="acc-amt neg" id="a-smbc">¥0</div></div>
+        <div class="acc" onclick="setAcc('yucho',this)"><div class="acc-dot" style="background:var(--yucho)"></div><div class="acc-name">ゆうちょ</div><div class="acc-amt pos" id="a-yucho">¥0</div></div>
+      </div>
+    </div>
+
+  </div><!-- /.pc-left -->
+
+  <div class="pc-right">
+
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div class="chart-title" id="chart-title">収支推移</div>
+        <div class="chart-tabs">
+          <button class="ctab on" onclick="setChart('bar',this)">推移</button>
+          <button class="ctab" onclick="setChart('donut',this)">内訳</button>
+        </div>
+      </div>
+      <div class="chart-sub" id="chart-sub"></div>
+
+      <div id="cv-bar">
+        <div class="bar-area">
+          <div class="bar-yaxis" id="bar-yaxis"></div>
+          <div class="bar-gridlines"><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div><div class="bar-gl"></div></div>
+          <div class="bar-inner" id="bar-inner"></div>
+          <div class="bar-xlabels" id="bar-xlabels"></div>
+        </div>
+        <div class="bar-leg">
+          <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--green)"></div>収入</div>
+          <div class="bar-leg-i"><div class="bar-leg-d" style="background:var(--red)"></div>支出</div>
+        </div>
+      </div>
+
+      <div id="cv-donut" style="display:none">
+        <div class="donut-wrap">
+          <div class="donut-svg-wrap">
+            <svg id="dsvg" width="144" height="144" viewBox="0 0 144 144"></svg>
+            <div class="donut-center"><div class="donut-center-val" id="dc-val">¥0</div><div class="donut-center-lbl">支出合計</div></div>
+          </div>
+          <div class="donut-legend" id="dlegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="ttab on" onclick="setTab('all',this)">すべて</button>
+      <button class="ttab" onclick="setTab('income',this)">収入</button>
+      <button class="ttab" onclick="setTab('expense',this)">支出</button>
+    </div>
+    <div class="txns" id="txns"></div>
+
+    <div class="upload" id="dropzone"
+      onclick="document.getElementById('fu').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="onDrop(event)">
+      <input type="file" id="fu" accept=".pdf,.csv" multiple style="display:none" onchange="onFile(event)">
+      <div class="upload-ic">📂</div>
+      <div class="upload-t">実データをアップロード</div>
+      <div class="upload-s">楽天・三井住友・ゆうちょの PDF または CSV<br>アップロードするとデモデータが置き換わります</div>
+      <div class="ubadges">
+        <span class="ub" style="background:rgba(255,64,64,.15);color:var(--rakuten)">楽天 PDF/CSV</span>
+        <span class="ub" style="background:rgba(77,159,255,.15);color:var(--smbc)">SMBC CSV</span>
+        <span class="ub" style="background:rgba(74,222,128,.15);color:var(--yucho)">ゆうちょ CSV</span>
+      </div>
+    </div>
+
+  </div><!-- /.pc-right -->
+</div><!-- /.pc-layout -->
 <div class="sp"></div>
 <div class="toast" id="toast"></div>
 
@@ -518,7 +537,7 @@ function renderTxns(){
   const el=document.getElementById('txns');
   if(!f.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">取引データがありません</div>';return;}
   let html='';let last='';
-  f.slice(0,80).forEach(t=>{
+  f.slice(0,100).forEach(t=>{
     if(t.date!==last){
       const[y,mo,d]=t.date.split('-');
       html+=`<div class="dh">${y}年${parseInt(mo)}月${parseInt(d)}日</div>`;

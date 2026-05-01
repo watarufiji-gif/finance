@@ -125,7 +125,6 @@ body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-botto
 .upload-s{font-size:11px;color:var(--muted);line-height:1.5}
 .ubadges{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 .ub{font-size:10px;padding:3px 10px;border-radius:5px;font-weight:500;font-family:var(--mono)}
-.demo-badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(251,191,36,.12);color:#FBBF24;font-family:var(--mono);margin-left:6px;vertical-align:middle}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--text);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;white-space:nowrap}
 .toast.show{opacity:1}
 .sp{height:40px}
@@ -147,7 +146,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-botto
 
     <div class="hd">
       <div>
-        <div class="hd-title">家計 <span class="demo-badge" id="demo-badge">DEMO</span></div>
+        <div class="hd-title">家計</div>
         <div class="hd-period" id="period-label">—</div>
         <div id="sync-status" style="font-size:10px;font-family:var(--mono);margin-top:2px"></div>
       </div>
@@ -375,7 +374,8 @@ function detectSrc(fname){
   const f=fname.toLowerCase();
   if(f.includes('rakuten')||f.includes('楽天')||f.includes('statement'))return 'rakuten';
   if(f.includes('smbc')||f.includes('vpass')||f.includes('mitsui')||f.includes('三井'))return 'smbc';
-  return 'yucho';
+  if(f.includes('yucho')||f.includes('ゆうちょ'))return 'yucho';
+  return null;
 }
 
 async function parsePDF(file,src){
@@ -401,34 +401,65 @@ async function parsePDF(file,src){
   return out;
 }
 
+function normalizeDate(s){
+  if(!s) return '';
+  const m=s.trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  return '';
+}
+
+async function decodeFile(file){
+  const buf=await file.arrayBuffer();
+  const bytes=new Uint8Array(buf);
+  if(bytes[0]===0xEF&&bytes[1]===0xBB&&bytes[2]===0xBF)
+    return new TextDecoder('utf-8').decode(buf);
+  try{
+    const sjis=new TextDecoder('shift-jis').decode(buf);
+    if(/[ぁ-ん]|[ァ-ン]|[亜-熙々〆〤]/.test(sjis))return sjis;
+  }catch(e){}
+  try{
+    const euc=new TextDecoder('euc-jp').decode(buf);
+    if(/[ぁ-ん]|[ァ-ン]/.test(euc))return euc;
+  }catch(e){}
+  return new TextDecoder('utf-8').decode(buf);
+}
+
 function splitCSV(line){
   const r=[];let c='';let q=false;
   for(const ch of line){if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else c+=ch;}
   r.push(c.trim());return r;
 }
 function parseCSV(text,src){
-  const lines=text.split(/\r?\n/).filter(l=>l.trim()&&!l.startsWith('#'));
-  if(lines.length<2)return[];
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return[];
   const out=[];
-  lines.slice(1).forEach(row=>{
-    const c=splitCSV(row);if(c.length<2)return;
+  lines.forEach(row=>{
+    const c=splitCSV(row);
+    if(c.length<2)return;
     let date='',name='',amount=0;
     if(src==='rakuten'){
-      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
-      const raw=parseInt((c[7]||c[6]||c[4]||'0').replace(/[^\d]/g,''),10);
-      amount=isNaN(raw)?0:-raw;
+      // 楽天: 日付, 店名, 利用者, 支払方法, 空, 請求月, 利用金額, 支払金額
+      date=normalizeDate(c[0]);
+      name=(c[1]||'').trim();
+      const rawAmt=(c[6]||c[7]||'0')
+        .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0))
+        .replace(/,/g,'').replace(/[^\d]/g,'');
+      amount=rawAmt?-parseInt(rawAmt,10):0;
     }else if(src==='smbc'){
-      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
+      date=normalizeDate(c[0]);
+      name=(c[1]||'').trim();
       const w=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
       const d2=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
       amount=d2>0?d2:w>0?-w:0;
     }else{
-      date=c[0].replace(/\//g,'-').trim();name=c[1].trim();
+      date=normalizeDate(c[0]);
+      name=(c[1]||'').trim();
       const dep=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
       const wit=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
       amount=dep>0?dep:wit>0?-wit:0;
     }
-    if(!date.match(/\d{4}-\d{2}-\d{2}/)||!name)return;
+    if(!date||!name)return;
+    if(!date.match(/^\d{4}-\d{2}-\d{2}$/))return;
     const g=gC(name);
     out.push({date,name,amount,type:amount>=0?'income':'expense',...g,src});
   });
@@ -436,14 +467,21 @@ function parseCSV(text,src){
 }
 
 async function processFile(file){
-  const src=detectSrc(file.name);
+  let src=detectSrc(file.name);
+  if(!src){
+    const choice=prompt(`「${file.name}」\n口座を選んでください:\n1 → 楽天カード\n2 → 三井住友(SMBC)\n3 → ゆうちょ`);
+    if(choice==='1')src='rakuten';
+    else if(choice==='2')src='smbc';
+    else if(choice==='3')src='yucho';
+    else{toast('キャンセルしました');return;}
+  }
   let newT=[];
   try{
     if(file.name.toLowerCase().endsWith('.pdf')) newT=await parsePDF(file,src);
     else{
-      const buf=await file.arrayBuffer();
-      let text;try{text=new TextDecoder('shift-jis').decode(buf);}catch{text=new TextDecoder('utf-8').decode(buf);}
+      const text=await decodeFile(file);
       newT=parseCSV(text,src);
+      console.log('CSV parsed:',newT.length,'rows',newT.slice(0,3));
     }
     if(newT.length){
       const ex=new Set(txns.map(t=>`${t.date}|${t.name}|${t.amount}|${t.src}`));
@@ -477,7 +515,6 @@ async function loadFromDB(){
     if(error)throw error;
     if(data&&data.length>0){
       txns=data;isDemo=false;
-      document.getElementById('demo-badge').style.display='none';
     }else{
       txns=[...DEMO_DATA];isDemo=true;
     }

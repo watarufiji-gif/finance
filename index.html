@@ -341,7 +341,8 @@ const CAT_RULES=[
   {r:/楽天証券|証券|投信|積立/i,cat:'投資',icon:'📈',col:'#818CF8'},
   {r:/保険|生命|損保|楽天生命/i,cat:'保険',icon:'🛡',col:'#6B7280'},
   {r:/クロネコ|ヤマト運輸|佐川|日本郵便/i,cat:'配送',icon:'📦',col:'#C084FC'},
-  {r:/給与|賞与|salary/i,cat:'給与',icon:'💰',col:'#22C55E'},
+  {r:/給与|賞与|salary|ｳﾙﾌﾊﾟﾂｸ|ウルフパック/i,cat:'給与',icon:'💰',col:'#22C55E'},
+  {r:/送金|振込|自払|ﾛｰｿﾝｷﾞﾝｺｳ/i,cat:'振込・送金',icon:'💸',col:'#60A5FA'},
 ];
 function gC(name){for(const r of CAT_RULES)if(r.r.test(name))return{cat:r.cat,icon:r.icon,col:r.col};return{cat:'その他',icon:'📋',col:'#52525B'};}
 function cCol(c){return(CAT_RULES.find(r=>r.cat===c)||{col:'#52525B'}).col;}
@@ -373,8 +374,9 @@ function periodStr(){
 function detectSrc(fname){
   const f=fname.toLowerCase();
   if(f.includes('rakuten')||f.includes('楽天')||f.includes('statement'))return 'rakuten';
+  if(f.includes('etc')||f.includes('高速')||f.includes('etccard'))return 'etc';
   if(f.includes('smbc')||f.includes('vpass')||f.includes('mitsui')||f.includes('三井'))return 'smbc';
-  if(f.includes('yucho')||f.includes('ゆうちょ'))return 'yucho';
+  if(f.includes('yucho')||f.includes('ゆうちょ')||f.includes('jp-bank'))return 'yucho';
   return null;
 }
 
@@ -403,7 +405,12 @@ async function parsePDF(file,src){
 
 function normalizeDate(s){
   if(!s) return '';
-  const m=s.trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  s=s.trim();
+  if(/^\d{8}$/.test(s))
+    return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+  const yy=s.match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if(yy) return `${parseInt(yy[1])+2000}-${yy[2]}-${yy[3]}`;
+  const m=s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
   if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
   return '';
 }
@@ -415,7 +422,7 @@ async function decodeFile(file){
     return new TextDecoder('utf-8').decode(buf);
   try{
     const sjis=new TextDecoder('shift-jis').decode(buf);
-    if(/[ぁ-ん]|[ァ-ン]|[亜-熙々〆〤]/.test(sjis))return sjis;
+    if(/[ぁ-ん]|[ァ-ン]|[亜-熙々〆〤]|[ｦ-ﾟ]/.test(sjis))return sjis;
   }catch(e){}
   try{
     const euc=new TextDecoder('euc-jp').decode(buf);
@@ -433,46 +440,83 @@ function parseCSV(text,src){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(!lines.length)return[];
   const out=[];
-  lines.forEach(row=>{
-    const c=splitCSV(row);
-    if(c.length<2)return;
-    let date='',name='',amount=0;
-    if(src==='rakuten'){
-      // 楽天: 日付, 店名, 利用者, 支払方法, 空, 請求月, 利用金額, 支払金額
-      date=normalizeDate(c[0]);
-      name=(c[1]||'').trim();
-      const rawAmt=(c[6]||c[7]||'0')
+
+  if(src==='rakuten'){
+    // 楽天: ヘッダーなし。列: 日付,店名,利用者,支払方法,空,請求月,利用金額,支払金額
+    lines.forEach(row=>{
+      const c=splitCSV(row);
+      if(c.length<7)return;
+      const date=normalizeDate(c[0]);
+      const name=(c[1]||'').trim();
+      const rawAmt=(c[6]||'0')
         .replace(/[０-９]/g,s=>String.fromCharCode(s.charCodeAt(0)-0xFEE0))
-        .replace(/,/g,'').replace(/[^\d]/g,'');
-      amount=rawAmt?-parseInt(rawAmt,10):0;
-    }else if(src==='smbc'){
-      date=normalizeDate(c[0]);
-      name=(c[1]||'').trim();
-      const w=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
-      const d2=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
-      amount=d2>0?d2:w>0?-w:0;
-    }else{
-      date=normalizeDate(c[0]);
-      name=(c[1]||'').trim();
+        .replace(/[^\d]/g,'');
+      const amount=rawAmt?-parseInt(rawAmt,10):0;
+      if(!date||!name||!date.match(/^\d{4}-\d{2}-\d{2}$/))return;
+      const g=gC(name);
+      out.push({date,name,amount,type:'expense',...g,src});
+    });
+
+  }else if(src==='yucho'){
+    // ゆうちょ: 先頭説明行あり。列: 取引日,明細ID,受入金額,払出金額,詳細1,詳細2,残高
+    lines.forEach(row=>{
+      const c=splitCSV(row);
+      if(c.length<4)return;
+      if(!/^\d{8}$/.test(c[0].trim()))return; // 8桁日付でない行はスキップ
+      const date=normalizeDate(c[0]);
+      const detail1=(c[4]||'').trim();
+      const detail2=(c[5]||'').trim();
+      const name=detail2?`${detail1} ${detail2}`.trim():detail1||'取引';
       const dep=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
       const wit=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
-      amount=dep>0?dep:wit>0?-wit:0;
-    }
-    if(!date||!name)return;
-    if(!date.match(/^\d{4}-\d{2}-\d{2}$/))return;
-    const g=gC(name);
-    out.push({date,name,amount,type:amount>=0?'income':'expense',...g,src});
-  });
+      const amount=dep>0?dep:wit>0?-wit:0;
+      if(!date||amount===0)return;
+      const g=gC(name);
+      out.push({date,name,amount,type:amount>=0?'income':'expense',...g,src});
+    });
+
+  }else if(src==='smbc'){
+    // SMBC: 列: 年月日,摘要,お引出し,お預入れ,残高
+    lines.forEach(row=>{
+      const c=splitCSV(row);
+      if(c.length<3)return;
+      const date=normalizeDate(c[0]);
+      if(!date)return;
+      const name=(c[1]||'').trim();
+      const w=parseInt((c[2]||'0').replace(/[^\d]/g,''),10)||0;
+      const d2=parseInt((c[3]||'0').replace(/[^\d]/g,''),10)||0;
+      const amount=d2>0?d2:w>0?-w:0;
+      if(!name||amount===0)return;
+      const g=gC(name);
+      out.push({date,name,amount,type:amount>=0?'income':'expense',...g,src});
+    });
+
+  }else if(src==='etc'){
+    // ETC: 列: 利用年月日(yy/mm/dd),時分,...,出口IC,...,通行料金(列8)
+    lines.forEach(row=>{
+      const c=splitCSV(row);
+      if(c.length<9)return;
+      const date=normalizeDate(c[0]);
+      if(!date)return;
+      const name=`ETC ${(c[5]||c[1]||'').trim()}`;
+      const rawAmt=(c[8]||'0').replace(/[^\d]/g,'');
+      const amount=rawAmt?-parseInt(rawAmt,10):0;
+      if(!date||amount===0)return;
+      out.push({date,name,amount,type:'expense',cat:'交通',icon:'🚗',col:'#FBBF24',src:'smbc'});
+    });
+  }
+
   return out;
 }
 
 async function processFile(file){
   let src=detectSrc(file.name);
   if(!src){
-    const choice=prompt(`「${file.name}」\n口座を選んでください:\n1 → 楽天カード\n2 → 三井住友(SMBC)\n3 → ゆうちょ`);
+    const choice=prompt(`「${file.name}」\n口座を選んでください:\n1 → 楽天カード\n2 → 三井住友(SMBC)\n3 → ゆうちょ\n4 → ETCカード`);
     if(choice==='1')src='rakuten';
     else if(choice==='2')src='smbc';
     else if(choice==='3')src='yucho';
+    else if(choice==='4')src='etc';
     else{toast('キャンセルしました');return;}
   }
   let newT=[];

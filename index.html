@@ -349,7 +349,7 @@ function cIco(c){return(CAT_RULES.find(r=>r.cat===c)||{icon:'📋'}).icon;}
 
 function yen(n,sign=false){
   const abs=Math.abs(n);
-  const s=abs>=10000?Math.round(abs/10000)+'万':abs.toLocaleString('ja-JP');
+  const s=abs.toLocaleString('ja-JP');
   return (sign&&n>0?'+':'')+'¥'+s;
 }
 

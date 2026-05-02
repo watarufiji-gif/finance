@@ -531,9 +531,12 @@ async function processFile(file){
       console.log('CSV parsed:',newT.length,'rows',newT.slice(0,3));
     }
     if(newT.length){
+      // 既存データを全削除してから新データを挿入
+      const {error:delErr}=await sb.from('transactions').delete().not('id','is',null);
+      if(delErr)throw delErr;
       await saveToDB(newT);
       await loadFromDB();
-      toast(`${newT.length}件を同期しました`);
+      toast(`${newT.length}件に更新しました`);
     }else toast('明細が見つかりませんでした');
   }catch(e){console.error(e);toast('エラー: '+e.message);}
 }
@@ -573,8 +576,7 @@ async function saveToDB(newTxns){
     date:t.date,name:t.name,amount:t.amount,
     type:t.type,cat:t.cat,icon:t.icon,col:t.col,src:t.src
   }));
-  const {error}=await sb.from('transactions')
-    .upsert(rows,{onConflict:'date,name,amount,src',ignoreDuplicates:false});
+  const {error}=await sb.from('transactions').insert(rows);
   if(error){setSyncStatus('error');return false;}
   setSyncStatus('ok');
   return true;

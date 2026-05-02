@@ -531,15 +531,9 @@ async function processFile(file){
       console.log('CSV parsed:',newT.length,'rows',newT.slice(0,3));
     }
     if(newT.length){
-      const ex=new Set(txns.map(t=>`${t.date}|${t.name}|${t.amount}|${t.src}`));
-      const fresh=newT.filter(t=>!ex.has(`${t.date}|${t.name}|${t.amount}|${t.src}`));
-      if(fresh.length>0){
-        await saveToDB(fresh);
-        await loadFromDB();
-        toast(`${fresh.length}件追加（重複${newT.length-fresh.length}件スキップ）`);
-      }else{
-        toast(`新しいデータはありませんでした（${newT.length}件重複）`);
-      }
+      await saveToDB(newT);
+      await loadFromDB();
+      toast(`${newT.length}件を同期しました`);
     }else toast('明細が見つかりませんでした');
   }catch(e){console.error(e);toast('エラー: '+e.message);}
 }
@@ -580,7 +574,7 @@ async function saveToDB(newTxns){
     type:t.type,cat:t.cat,icon:t.icon,col:t.col,src:t.src
   }));
   const {error}=await sb.from('transactions')
-    .upsert(rows,{onConflict:'date,name,amount,src',ignoreDuplicates:true});
+    .upsert(rows,{onConflict:'date,name,amount,src',ignoreDuplicates:false});
   if(error){setSyncStatus('error');return false;}
   setSyncStatus('ok');
   return true;
